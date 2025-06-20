@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <defs>
+    <linearGradient id="faviconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff5722;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect x="0.5" y="0.5" width="15" height="15" rx="3" ry="3" fill="url(#faviconGradient)" stroke="none"/>
+  
+  <!-- Centered symmetric flowing lines representing RSS feed -->
+  <path d="M3 4.5 Q8 3.5 13 4.5" stroke="white" stroke-width="1.75" fill="none" opacity="0.9"/>
+  <path d="M3 6.75 Q8 5.75 13 6.75" stroke="white" stroke-width="1.75" fill="none" opacity="0.8"/>
+  <path d="M3 9 Q8 8 13 9" stroke="white" stroke-width="1.75" fill="none" opacity="0.7"/>
+  <path d="M3 11.25 Q8 10.25 13 11.25" stroke="white" stroke-width="1.75" fill="none" opacity="0.6"/>
+</svg>

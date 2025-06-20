@@ -1,0 +1,66 @@
+server {
+    listen 80 default_server;
+    listen  [::]:80;
+    server_name _;
+
+    root   /usr/share/nginx/html;
+    index  index.html index.htm;
+
+    error_page 500 502 503 504 /50x.html;
+    error_page 404 /404.html;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    location /r/ {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen  [::]:443 ssl;
+    server_name _;
+    
+    root /usr/share/nginx/html;
+    index index.html index.htm;
+
+    location /r/ {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }    
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    ssl_certificate /etc/letsencrypt/live/${SERVER_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${SERVER_NAME}/privkey.pem;
+
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}

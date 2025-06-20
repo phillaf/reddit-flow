@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff5722;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded square background -->
+  <rect x="1" y="1" width="30" height="30" rx="6" ry="6" fill="url(#logoGradient)" stroke="none"/>
+  
+  <!-- Centered symmetric flowing lines representing RSS feed -->
+  <path d="M6 9 Q16 7 26 9" stroke="white" stroke-width="3.5" fill="none" opacity="0.9"/>
+  <path d="M6 13.5 Q16 11.5 26 13.5" stroke="white" stroke-width="3.5" fill="none" opacity="0.8"/>
+  <path d="M6 18 Q16 16 26 18" stroke="white" stroke-width="3.5" fill="none" opacity="0.7"/>
+  <path d="M6 22.5 Q16 20.5 26 22.5" stroke="white" stroke-width="3.5" fill="none" opacity="0.6"/>
+</svg>

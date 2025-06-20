@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Flow - Modern Reddit Feed Reader</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div id="app" class="light-theme">
+        <header class="header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <img src="/logo.svg" alt="Reddit Flow Logo" class="logo">
+                </div>
+                <div class="input-container">
+                    <input 
+                        type="text" 
+                        id="subreddit-input" 
+                        placeholder="Enter subreddit name (e.g., worldnews)"
+                        class="subreddit-input"
+                    >
+                </div>
+                <div id="refresh-timer" class="refresh-timer">
+                    <svg class="timer-circle" width="24" height="24">
+                        <circle cx="12" cy="12" r="10" class="timer-bg"/>
+                        <circle cx="12" cy="12" r="10" class="timer-progress"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="theme-toggle" class="theme-toggle">
+                    <svg class="theme-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" data-sort="hot">Hot</button>
+            <button class="tab-button" data-sort="new">New</button>
+            <button class="tab-button" data-sort="rising">Rising</button>
+            <button class="tab-button" data-sort="controversial">Controversial</button>
+            <button class="tab-button" data-sort="top">Top</button>
+        </nav>
+
+        <main id="posts-container" class="posts-container">
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading posts...</p>
+            </div>
+            <div id="error" class="error hidden">
+                <p>Failed to load posts. Please check the subreddit name and try again.</p>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>
+                <a href="https://github.com/phillaf/reddit-flow" target="_blank" rel="noopener noreferrer">
+                    View on GitHub
+                </a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>
