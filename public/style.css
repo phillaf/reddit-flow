@@ -101,6 +101,7 @@ body {
     gap: 1rem;
     min-width: 350px;
     order: 2;
+    position: relative;
 }
 
 .subreddit-input {
@@ -631,6 +632,11 @@ body {
 @keyframes slide-out {
     0% { transform: translateX(0); opacity: 1; }
     100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* Input container */
+.input-container {
+    position: relative;
 }
 
 @media (max-width: 700px) {

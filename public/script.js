@@ -107,8 +107,23 @@ class RedditFeedReader {
             if (this.currentSubreddit) {
                 this.loadPosts();
             }
+        } else if (pathParts.length >= 4 && pathParts[0] === 'user' && pathParts[2] === 'm') {
+            // URL format: /user/username/m/multiname or /user/username/m/multiname/sort
+            // Construct the multi-reddit path
+            const multiRedditPath = `/${pathParts.slice(0, 4).join('/')}`;
+            const sort = pathParts[4] || 'hot';
+            
+            this.currentSubreddit = multiRedditPath;
+            this.currentSort = sort;
+            this.subredditInput.value = multiRedditPath;
+            this.updateActiveTab();
+            
+            // Load posts if we have a multi-reddit
+            if (this.currentSubreddit) {
+                this.loadPosts();
+            }
         } else {
-            // No valid subreddit in URL, reset to defaults
+            // No valid subreddit or multi-reddit in URL, reset to defaults
             this.currentSubreddit = '';
             this.currentSort = 'hot';
             this.subredditInput.value = '';
@@ -118,7 +133,16 @@ class RedditFeedReader {
 
     updateURL() {
         if (this.currentSubreddit) {
-            const newPath = `/r/${this.currentSubreddit}${this.currentSort !== 'hot' ? '/' + this.currentSort : ''}`;
+            let newPath;
+            
+            if (this.isMultiReddit(this.currentSubreddit)) {
+                // The multi-reddit path already includes the leading slash
+                newPath = `${this.currentSubreddit}${this.currentSort !== 'hot' ? '/' + this.currentSort : ''}`;
+            } else {
+                // Regular subreddit
+                newPath = `/r/${this.currentSubreddit}${this.currentSort !== 'hot' ? '/' + this.currentSort : ''}`;
+            }
+            
             window.history.pushState({}, '', newPath);
         } else {
             window.history.pushState({}, '', '/');
@@ -173,20 +197,34 @@ class RedditFeedReader {
     }
 
     handleSubredditChange() {
-        const subreddit = this.subredditInput.value.trim();
-        if (subreddit && subreddit !== this.currentSubreddit) {
+        let input = this.subredditInput.value.trim();
+        
+        // Check if the input looks like a multi-reddit
+        const isMultiRedditInput = input.includes('user/') && input.includes('/m/');
+        
+        // Normalize multi-reddit format - ensure it starts with '/'
+        if (isMultiRedditInput && !input.startsWith('/')) {
+            input = '/' + input;
+        }
+        
+        if (input && input !== this.currentSubreddit) {
             const wasEmpty = !this.currentSubreddit;
-            this.currentSubreddit = subreddit;
-            // Initialize hidden posts for this subreddit if not already created
-            if (!this.hiddenPosts[subreddit]) {
-                this.hiddenPosts[subreddit] = new Set();
+            this.currentSubreddit = input;
+            
+            // Get storage key for this input (subreddit name or multi-reddit path)
+            const storageKey = this.getStorageKey(input);
+            
+            // Initialize hidden posts for this subreddit/multi-reddit if not already created
+            if (!this.hiddenPosts[storageKey]) {
+                this.hiddenPosts[storageKey] = new Set();
             }
+            
             this.hasError = false; // Reset error state
             this.updateURL(); // Update URL
-            this.showSubredditConfirmation(subreddit);
+            this.showSubredditConfirmation(input);
             this.loadPosts();
             
-            // Start timer if it wasn't running (first subreddit entry)
+            // Start timer if it wasn't running (first input entry)
             if (wasEmpty) {
                 this.startRefreshTimer();
             } else {
@@ -195,7 +233,7 @@ class RedditFeedReader {
         }
     }
 
-    showSubredditConfirmation(subreddit) {
+    showSubredditConfirmation(input) {
         // Create shockwave effect
         const inputRect = this.subredditInput.getBoundingClientRect();
         const shockwave = document.createElement('div');
@@ -312,7 +350,7 @@ class RedditFeedReader {
         this.hideInitialMessage();
 
         try {
-            const url = `https://www.reddit.com/r/${this.currentSubreddit}/${this.currentSort}.json?limit=50`;
+            const url = this.getRedditApiUrl(this.currentSubreddit, this.currentSort);
             const response = await fetch(url);
             
             if (!response.ok) {
@@ -534,12 +572,14 @@ class RedditFeedReader {
     }
 
     hidePost(postId) {
-        // If we have a current subreddit, add the post to its hidden list
+        // If we have a current subreddit/multi-reddit, add the post to its hidden list
         if (this.currentSubreddit) {
-            if (!this.hiddenPosts[this.currentSubreddit]) {
-                this.hiddenPosts[this.currentSubreddit] = new Set();
+            const storageKey = this.getStorageKey(this.currentSubreddit);
+            
+            if (!this.hiddenPosts[storageKey]) {
+                this.hiddenPosts[storageKey] = new Set();
             }
-            this.hiddenPosts[this.currentSubreddit].add(postId);
+            this.hiddenPosts[storageKey].add(postId);
             
             // Save to localStorage after hiding a post
             this.saveHiddenPostsToStorage();
@@ -606,27 +646,51 @@ class RedditFeedReader {
         
         if (errorType === 'NO_POSTS') {
             title = 'No Posts Found';
-            message = `The subreddit "${this.currentSubreddit}" exists but has no posts in the "${this.currentSort}" category.`;
+            
+            if (this.isMultiReddit(this.currentSubreddit)) {
+                message = `The multi-reddit "${this.currentSubreddit}" exists but has no posts in the "${this.currentSort}" category.`;
+            } else {
+                message = `The subreddit "${this.currentSubreddit}" exists but has no posts in the "${this.currentSort}" category.`;
+            }
+            
             suggestion = `
                 <p class="error-suggestion">Try switching to a different tab (Hot, New, etc.) or check back later.</p>
             `;
         } else {
             // Generic error for all other cases (FETCH_ERROR, network issues, etc.)
             title = 'Unable to Load Posts';
-            message = `Could not load posts from "${this.currentSubreddit}".`;
-            suggestion = `
-                <p class="error-suggestion">Please double-check the subreddit name and try again.</p>
-                <p class="error-suggestion">
-                    You can verify it exists by visiting: 
-                    <a href="https://www.reddit.com/r/${this.currentSubreddit}" target="_blank" rel="noopener">
-                        reddit.com/r/${this.currentSubreddit}
-                    </a>
-                </p>
-                <p class="error-suggestion">
-                    This could also be due to network issues or Reddit being temporarily unavailable.
-                    Check the <a href="https://www.redditstatus.com" target="_blank" rel="noopener">Reddit Status Page</a> if the problem persists.
-                </p>
-            `;
+            
+            if (this.isMultiReddit(this.currentSubreddit)) {
+                message = `Could not load posts from multi-reddit "${this.currentSubreddit}".`;
+                suggestion = `
+                    <p class="error-suggestion">Please double-check the multi-reddit path and try again.</p>
+                    <p class="error-suggestion">
+                        You can verify it exists by visiting: 
+                        <a href="https://www.reddit.com${this.currentSubreddit}" target="_blank" rel="noopener">
+                            reddit.com${this.currentSubreddit}
+                        </a>
+                    </p>
+                    <p class="error-suggestion">
+                        This could also be due to network issues or Reddit being temporarily unavailable.
+                        Check the <a href="https://www.redditstatus.com" target="_blank" rel="noopener">Reddit Status Page</a> if the problem persists.
+                    </p>
+                `;
+            } else {
+                message = `Could not load posts from subreddit "${this.currentSubreddit}".`;
+                suggestion = `
+                    <p class="error-suggestion">Please double-check the subreddit name and try again.</p>
+                    <p class="error-suggestion">
+                        You can verify it exists by visiting: 
+                        <a href="https://www.reddit.com/r/${this.currentSubreddit}" target="_blank" rel="noopener">
+                            reddit.com/r/${this.currentSubreddit}
+                        </a>
+                    </p>
+                    <p class="error-suggestion">
+                        This could also be due to network issues or Reddit being temporarily unavailable.
+                        Check the <a href="https://www.redditstatus.com" target="_blank" rel="noopener">Reddit Status Page</a> if the problem persists.
+                    </p>
+                `; 
+            }
         }
         
         errorMessage.innerHTML = `
@@ -668,8 +732,9 @@ class RedditFeedReader {
             initialMessage.innerHTML = `
                 <div class="initial-message-content">
                     <h2>Welcome to Reddit Flow</h2>
-                    <p>Enter a subreddit name to display posts</p>
-                    <p class="example">e.g., worldnews, technology, programming</p>
+                    <p>Enter a subreddit or multi-reddit to display posts</p>
+                    <p class="example">Subreddit: worldnews, technology, programming</p>
+                    <p class="example">Multi-reddit: /user/username/m/multiname</p>
                 </div>
             `;
             this.postsContainer.appendChild(initialMessage);
@@ -681,6 +746,39 @@ class RedditFeedReader {
         if (initialMessage) {
             initialMessage.remove();
         }
+    }
+
+    // Check if a string is a multi-reddit format
+    isMultiReddit(input) {
+        if (!input) return false;
+        
+        // Handle formats with or without leading slash
+        const normalizedInput = input.startsWith('/') ? input : '/' + input;
+        
+        // Parse parts for proper structure: /user/username/m/multiname
+        const parts = normalizedInput.split('/').filter(part => part);
+        return parts.length >= 4 && 
+               parts[0] === 'user' && 
+               parts[2] === 'm';
+    }
+    
+    // Format the URL for API calls based on input type (subreddit or multi-reddit)
+    getRedditApiUrl(input, sort) {
+        if (this.isMultiReddit(input)) {
+            // Multi-reddit format: /user/username/m/multiname
+            return `https://www.reddit.com${input}/${sort}.json?limit=50`;
+        } else {
+            // Regular subreddit
+            return `https://www.reddit.com/r/${input}/${sort}.json?limit=50`;
+        }
+    }
+    
+    // Get the storage key for hidden posts
+    // Currently we use the same format for both subreddits and multi-reddits
+    getStorageKey(input) {
+        // Simple implementation for now - could be extended if we need
+        // different storage strategies for different input types
+        return input;
     }
 
     // Load hidden posts from localStorage
@@ -722,16 +820,19 @@ class RedditFeedReader {
         }
     }
     
-    // Get hidden posts for current subreddit
+    // Get hidden posts for current subreddit or multi-reddit
     getHiddenPostsForCurrentSubreddit() {
         if (!this.currentSubreddit) return new Set();
         
+        // Get the appropriate storage key (subreddit name or multi-reddit path)
+        const storageKey = this.getStorageKey(this.currentSubreddit);
+        
         // Initialize if not exists
-        if (!this.hiddenPosts[this.currentSubreddit]) {
-            this.hiddenPosts[this.currentSubreddit] = new Set();
+        if (!this.hiddenPosts[storageKey]) {
+            this.hiddenPosts[storageKey] = new Set();
         }
         
-        return this.hiddenPosts[this.currentSubreddit];
+        return this.hiddenPosts[storageKey];
     }
     
     // Check if post is hidden (check across all subreddits)
