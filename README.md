@@ -1,6 +1,7 @@
 # Reddit Flow
 
-A clean minimalist web application for reading Reddit posts from any subreddit with real-time re-ranking
+A clean minimalist web application that refreshes a reddit list of posts every 
+minute.
 
 **[reddit-flow.com](https://reddit-flow.com)**
 
@@ -16,9 +17,6 @@ Copy the example environment file and configure your settings:
 cp .env.example .env
 ```
 
-Edit `.env` with your configuration:
-
-**Environment Variable Reference:**
 - `SERVER_NAME`: Your domain name or 'localhost' for development
 - `EMAIL`: Email address for Let's Encrypt notifications
 - `MOCK_CERT`: Set to `1` to create self-signed certificates for development

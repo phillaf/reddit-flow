@@ -597,6 +597,42 @@ body {
     text-decoration: underline;
 }
 
+.footer-separator {
+    margin: 0 8px;
+    color: var(--text-muted);
+}
+
+/* Notification */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 4px;
+    color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    animation: slide-in 0.3s ease-out forwards;
+}
+
+.success-notification {
+    background-color: var(--success);
+}
+
+.notification.fading-out {
+    animation: slide-out 0.5s ease-in forwards;
+}
+
+@keyframes slide-in {
+    0% { transform: translateX(100%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-out {
+    0% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+}
+
 @media (max-width: 700px) {
     .logo-container {
         order: 1;

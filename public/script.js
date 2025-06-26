@@ -15,7 +15,11 @@ class RedditFeedReader {
         this.currentSubreddit = '';
         this.currentSort = 'hot';
         this.posts = [];
-        this.hiddenPosts = new Set();
+        
+        // Initialize hiddenPosts as an object with subreddit keys and Set values
+        this.hiddenPosts = {};
+        this.loadHiddenPostsFromStorage();
+        
         this.refreshInterval = null;
         this.timerInterval = null;
         this.refreshTimer = this.REFRESH_INTERVAL;
@@ -69,6 +73,15 @@ class RedditFeedReader {
         this.themeToggle.addEventListener('click', () => {
             this.toggleTheme();
         });
+
+        // Purge hidden posts link
+        const purgeLink = document.getElementById('purge-hidden-posts');
+        if (purgeLink) {
+            purgeLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.purgeHiddenPosts();
+            });
+        }
 
         // Handle browser back/forward buttons
         window.addEventListener('popstate', (e) => {
@@ -164,7 +177,10 @@ class RedditFeedReader {
         if (subreddit && subreddit !== this.currentSubreddit) {
             const wasEmpty = !this.currentSubreddit;
             this.currentSubreddit = subreddit;
-            this.hiddenPosts.clear(); // Clear hidden posts when changing subreddit
+            // Initialize hidden posts for this subreddit if not already created
+            if (!this.hiddenPosts[subreddit]) {
+                this.hiddenPosts[subreddit] = new Set();
+            }
             this.hasError = false; // Reset error state
             this.updateURL(); // Update URL
             this.showSubredditConfirmation(subreddit);
@@ -330,14 +346,27 @@ class RedditFeedReader {
         const oldPosts = [...this.posts];
         this.posts = newPosts;
         
+        // Get hidden posts for current subreddit
+        const hiddenPostsForSubreddit = this.getHiddenPostsForCurrentSubreddit();
+        
         // Clean up hidden posts that are no longer in the API response
-        const currentPostIds = new Set(newPosts.map(post => post.id));
-        const hiddenPostsArray = Array.from(this.hiddenPosts);
-        hiddenPostsArray.forEach(postId => {
-            if (!currentPostIds.has(postId)) {
-                this.hiddenPosts.delete(postId);
+        if (this.currentSubreddit) {
+            const currentPostIds = new Set(newPosts.map(post => post.id));
+            const hiddenPostsArray = Array.from(hiddenPostsForSubreddit);
+            
+            let removedAny = false;
+            hiddenPostsArray.forEach(postId => {
+                if (!currentPostIds.has(postId)) {
+                    hiddenPostsForSubreddit.delete(postId);
+                    removedAny = true;
+                }
+            });
+            
+            // Save to localStorage if posts were pruned
+            if (removedAny) {
+                this.saveHiddenPostsToStorage();
             }
-        });
+        }
 
         if (oldPosts.length === 0) {
             // First load
@@ -432,7 +461,7 @@ class RedditFeedReader {
         postDiv.className = 'post';
         postDiv.setAttribute('data-post-id', post.id);
         
-        if (this.hiddenPosts.has(post.id)) {
+        if (this.isPostHidden(post.id)) {
             postDiv.classList.add('hidden');
         }
         
@@ -505,17 +534,28 @@ class RedditFeedReader {
     }
 
     hidePost(postId) {
-        this.hiddenPosts.add(postId);
-        const postElement = this.findPostElement(postId);
-        if (postElement) {
+        // If we have a current subreddit, add the post to its hidden list
+        if (this.currentSubreddit) {
+            if (!this.hiddenPosts[this.currentSubreddit]) {
+                this.hiddenPosts[this.currentSubreddit] = new Set();
+            }
+            this.hiddenPosts[this.currentSubreddit].add(postId);
+            
+            // Save to localStorage after hiding a post
+            this.saveHiddenPostsToStorage();
+        }
+        
+        // Find and hide all elements with this post ID (in case it appears multiple times)
+        const postElements = document.querySelectorAll(`[data-post-id="${postId}"]`);
+        postElements.forEach(postElement => {
             postElement.classList.add('hiding');
-            // After animation completes, set to hidden
+            // After animation completes, remove from DOM
             setTimeout(() => {
                 if (postElement.parentNode) {
                     postElement.parentNode.removeChild(postElement);
                 }
             }, 220); // 200ms animation + 20ms buffer
-        }
+        });
     }
 
     formatNumber(num) {
@@ -641,6 +681,120 @@ class RedditFeedReader {
         if (initialMessage) {
             initialMessage.remove();
         }
+    }
+
+    // Load hidden posts from localStorage
+    loadHiddenPostsFromStorage() {
+        try {
+            const storedHiddenPosts = localStorage.getItem('hiddenPosts');
+            if (storedHiddenPosts) {
+                // Parse the JSON string into an object
+                const hiddenPostsObj = JSON.parse(storedHiddenPosts);
+                
+                // Convert each array to a Set
+                for (const subreddit in hiddenPostsObj) {
+                    this.hiddenPosts[subreddit] = new Set(hiddenPostsObj[subreddit]);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading hidden posts from storage:', error);
+            this.hiddenPosts = {};
+        }
+        
+        // If hiddenPosts is null or not an object, initialize it
+        if (!this.hiddenPosts || typeof this.hiddenPosts !== 'object') {
+            this.hiddenPosts = {};
+        }
+    }
+    
+    // Save hidden posts to localStorage
+    saveHiddenPostsToStorage() {
+        try {
+            // Convert Sets to arrays for JSON serialization
+            const hiddenPostsObj = {};
+            for (const subreddit in this.hiddenPosts) {
+                hiddenPostsObj[subreddit] = Array.from(this.hiddenPosts[subreddit]);
+            }
+            
+            localStorage.setItem('hiddenPosts', JSON.stringify(hiddenPostsObj));
+        } catch (error) {
+            console.error('Error saving hidden posts to storage:', error);
+        }
+    }
+    
+    // Get hidden posts for current subreddit
+    getHiddenPostsForCurrentSubreddit() {
+        if (!this.currentSubreddit) return new Set();
+        
+        // Initialize if not exists
+        if (!this.hiddenPosts[this.currentSubreddit]) {
+            this.hiddenPosts[this.currentSubreddit] = new Set();
+        }
+        
+        return this.hiddenPosts[this.currentSubreddit];
+    }
+    
+    // Check if post is hidden (check across all subreddits)
+    isPostHidden(postId) {
+        for (const subreddit in this.hiddenPosts) {
+            if (this.hiddenPosts[subreddit].has(postId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // Get count of hidden posts for a subreddit
+    getHiddenPostsCount(subreddit = null) {
+        const targetSubreddit = subreddit || this.currentSubreddit;
+        if (!targetSubreddit || !this.hiddenPosts[targetSubreddit]) return 0;
+        return this.hiddenPosts[targetSubreddit].size;
+    }
+    
+    // Get total count of hidden posts
+    getTotalHiddenPostsCount() {
+        let total = 0;
+        for (const subreddit in this.hiddenPosts) {
+            total += this.hiddenPosts[subreddit].size;
+        }
+        return total;
+    }
+    
+    // Purge all hidden posts from memory and localStorage
+    purgeHiddenPosts() {
+        // Clear the hidden posts from memory
+        this.hiddenPosts = {};
+        
+        // Save the empty hidden posts to localStorage
+        this.saveHiddenPostsToStorage();
+        
+        // Show confirmation message
+        this.showHiddenPostsPurgeConfirmation();
+        
+        // Refresh posts to show previously hidden ones
+        if (this.currentSubreddit) {
+            this.loadPosts();
+        }
+    }
+    
+    // Show a confirmation message when hidden posts are purged
+    showHiddenPostsPurgeConfirmation() {
+        const notification = document.createElement('div');
+        notification.className = 'notification success-notification';
+        notification.textContent = 'All hidden posts have been restored';
+        
+        // Add to body
+        document.body.appendChild(notification);
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            notification.classList.add('fading-out');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 500);
+        }, 3000);
     }
 }
 
