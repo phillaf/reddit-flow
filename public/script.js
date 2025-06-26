@@ -512,10 +512,9 @@ class RedditFeedReader {
             // After animation completes, set to hidden
             setTimeout(() => {
                 if (postElement.parentNode) {
-                    postElement.classList.remove('hiding');
-                    postElement.classList.add('hidden');
+                    postElement.parentNode.removeChild(postElement);
                 }
-            }, this.ANIMATION_DURATION);
+            }, 220); // 200ms animation + 20ms buffer
         }
     }
 

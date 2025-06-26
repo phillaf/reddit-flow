@@ -64,34 +64,17 @@ body {
     padding: 1rem 2rem;
     box-shadow: var(--shadow);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    position: sticky;
     top: 0;
     z-index: 100;
-    flex-wrap: wrap;
     gap: 1rem;
-}
-
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 1.2rem;
-    min-width: 0;
-    flex: 1;
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-shrink: 0;
 }
 
 .logo-container {
     display: flex;
     align-items: center;
     flex-shrink: 0;
+    order: 1;
 }
 
 .logo {
@@ -117,6 +100,7 @@ body {
     align-items: center;
     gap: 1rem;
     min-width: 350px;
+    order: 2;
 }
 
 .subreddit-input {
@@ -161,6 +145,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    order: 3;
+    margin-left: auto;
 }
 
 .timer-circle {
@@ -197,6 +183,7 @@ body {
     width: 40px;
     height: 40px;
     flex-shrink: 0;
+    order: 4;
 }
 
 .theme-toggle:hover {
@@ -326,6 +313,31 @@ body {
     border-bottom-color: var(--accent);
 }
 
+/* Mobile tabs styling */
+@media (max-width: 700px) {
+    .tabs {
+        padding: 0 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .tab-button {
+        flex: 1 1 auto;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Tabs now wrap to multiple lines */
+    
+    /* No drag cursor needed */
+    
+    .tab-button {
+        padding: 0.75rem 1.2rem;
+        font-size: 0.85rem;
+    }
+}
+
 /* Posts Container */
 .posts-container {
     max-width: 1200px;
@@ -347,7 +359,7 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     opacity: 1;
     transform: translateY(0);
 }
@@ -357,12 +369,8 @@ body {
     transform: translateY(-2px);
 }
 
-.post.hidden {
-    animation: slideOut 0.5s ease-out forwards;
-}
-
 .post.hiding {
-    animation: hidePost 0.5s ease-out forwards;
+    animation: hidePost 0.2s ease-out forwards;
 }
 
 @keyframes hidePost {
@@ -382,8 +390,9 @@ body {
         transform: translateY(-20px);
         max-height: 0;
         margin-bottom: 0;
-        padding: 0 1.5rem;
+        padding: 0;
         overflow: hidden;
+        border-width: 0;
     }
 }
 
@@ -588,109 +597,28 @@ body {
     text-decoration: underline;
 }
 
-/* Responsive Design */
-
-/* First breakpoint: keep everything on one row but shrink input */
-@media (max-width: 900px) {
-    .subreddit-input {
-        width: 280px;
-    }
-}
-
-@media (max-width: 800px) {
-    .subreddit-input {
-        width: 350px;
-    }
-}
-
-/* Second breakpoint: two-row layout */
 @media (max-width: 700px) {
-    .header {
-        padding: 1rem;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        position: relative;
-    }
-    
-    /* First row: logo stays on the left */
     .logo-container {
         order: 1;
-        flex-shrink: 0;
+        display: none;
     }
     
     /* Timer goes to center of first row */
     .refresh-timer {
         order: 2;
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        top: 50%;
-        transform: translate(-50%, -50%);
-    }
-    
-    /* Theme toggle stays on the right */
-    .header-right {
-        order: 2;
-        flex-shrink: 0;
+        margin-left: unset;
     }
     
     /* Second row: input bar takes full width */
     .input-container {
         order: 3;
-        flex-basis: 100%;
-        width: 100%;
         justify-content: stretch;
-        padding: 0;
         min-width: unset;
-        margin-top: 1rem;
+        width: 100%;
     }
     
     .subreddit-input {
         width: 100%;
         max-width: none;
-    }
-    
-    /* Reset header-left to not interfere */
-    .header-left {
-        display: contents;
-    }
-}
-
-@media (max-width: 600px) {
-    .tabs {
-        padding: 0 1rem;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-
-    .posts-container {
-        padding: 1rem;
-    }
-
-    .post {
-        padding: 1rem;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-
-    .post-content {
-        width: 100%;
-    }
-
-    .post-time {
-        align-self: flex-end;
-    }
-}
-
-@media (max-width: 480px) {
-    .header {
-        padding: 0.75rem;
-    }
-    
-    .tab-button {
-        padding: 0.75rem 1rem;
-        font-size: 0.8rem;
     }
 }

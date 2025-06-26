@@ -2,22 +2,7 @@
 
 A clean minimalist web application for reading Reddit posts from any subreddit with real-time re-ranking
 
-**Website: [reddit-flow.com](https://reddit-flow.com)**
-
-## Features
-
-- **Subreddit Input**: Enter any subreddit name to view its posts
-- **Multiple Sort Options**: View posts by Hot, New, Rising, Controversial, or Top
-- **Auto-refresh**: Posts refresh every minute
-- **Hide Posts**: Hide individual posts (hidden state persists during refresh)
-- **Smooth Animations**: Posts slide and animate when rankings change
-- **Light/Dark Theme**: Toggle between light and dark themes
-- **URL Routing**: Deep-linking support (e.g., `/r/worldnews/new`)
-
-## How to Use
-
-- Open [reddit-flow.com](https://reddit-flow.com) and type-in the subreddit of your choice.
-- Alternatively, visit your favorite subreddit URL and replace reddit.com with reddit-flow.com in the url bar.
+**[reddit-flow.com](https://reddit-flow.com)**
 
 ## Docker Setup
 
