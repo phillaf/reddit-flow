@@ -17,15 +17,32 @@
                 <input 
                     type="text" 
                     id="subreddit-input" 
-                    placeholder="Enter subreddit name (e.g., worldnews)"
+                    placeholder="Enter subreddit or multi-reddit (e.g., worldnews or /user/username/m/multiname)"
                     class="subreddit-input"
                 >
+                <button id="favorite-button" class="favorite-button hidden">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="favorite-icon">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" class="favorite-path"></path>
+                    </svg>
+                </button>
             </div>
             <div id="refresh-timer" class="refresh-timer">
                 <svg class="timer-circle" width="24" height="24">
                     <circle cx="12" cy="12" r="10" class="timer-bg"/>
                     <circle cx="12" cy="12" r="10" class="timer-progress"/>
                 </svg>
+            </div>
+            <div class="favorites-dropdown-container">
+                <button id="favorites-dropdown-toggle" class="favorites-dropdown-toggle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </button>
+                <div id="favorites-dropdown" class="favorites-dropdown hidden">
+                    <h3>Favorites</h3>
+                    <div id="favorites-list" class="favorites-list"></div>
+                    <div class="favorites-empty hidden">No favorites yet</div>
+                </div>
             </div>
             <button id="theme-toggle" class="theme-toggle">
                 <svg class="theme-icon" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">

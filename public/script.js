@@ -20,6 +20,9 @@ class RedditFeedReader {
         this.hiddenPosts = {};
         this.loadHiddenPostsFromStorage();
         
+        // Initialize favorites
+        this.favorites = [];
+        
         this.refreshInterval = null;
         this.timerInterval = null;
         this.refreshTimer = this.REFRESH_INTERVAL;
@@ -30,6 +33,7 @@ class RedditFeedReader {
         this.initializeElements();
         this.bindEvents();
         this.initializeTheme();
+        this.initializeFavorites();
         this.initializeFromURL(); // Initialize from URL first
         
         // Only start timer if we have a subreddit
@@ -52,6 +56,10 @@ class RedditFeedReader {
         this.themeToggle = document.getElementById('theme-toggle');
         this.refreshTimerElement = document.getElementById('refresh-timer');
         this.timerProgress = document.querySelector('.timer-progress');
+        this.favoriteButton = document.getElementById('favorite-button');
+        this.favoritesToggle = document.getElementById('favorites-dropdown-toggle');
+        this.favoritesDropdown = document.getElementById('favorites-dropdown');
+        this.favoritesList = document.getElementById('favorites-list');
     }
 
     bindEvents() {
@@ -72,6 +80,30 @@ class RedditFeedReader {
         // Theme toggle
         this.themeToggle.addEventListener('click', () => {
             this.toggleTheme();
+        });
+
+        // Favorite button
+        const favoriteButton = document.getElementById('favorite-button');
+        if (favoriteButton) {
+            favoriteButton.addEventListener('click', (e) => {
+                this.toggleFavorite();
+            });
+        }
+        
+        // Favorites dropdown toggle
+        const favoritesToggle = document.getElementById('favorites-dropdown-toggle');
+        if (favoritesToggle) {
+            favoritesToggle.addEventListener('click', () => {
+                this.toggleFavoritesDropdown();
+            });
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#favorites-dropdown') && 
+                !e.target.closest('#favorites-dropdown-toggle')) {
+                this.toggleFavoritesDropdown(false);
+            }
         });
 
         // Purge hidden posts link
@@ -371,12 +403,20 @@ class RedditFeedReader {
             this.isLoading = false;
             this.hasError = false;
             
+            // Update favorite button state for successful subreddit load
+            this.updateFavoriteButtonState();
+            
         } catch (error) {
             console.error('Failed to load posts:', error);
             this.showError(error.message);
             this.hideLoading();
             this.isLoading = false;
             this.hasError = true;
+            
+            // Hide favorite button on error
+            if (this.favoriteButton) {
+                this.favoriteButton.classList.add('hidden');
+            }
         }
     }
 
@@ -869,6 +909,8 @@ class RedditFeedReader {
         // Save the empty hidden posts to localStorage
         this.saveHiddenPostsToStorage();
         
+        // Note: We intentionally do NOT clear favorites here
+        
         // Show confirmation message
         this.showHiddenPostsPurgeConfirmation();
         
@@ -897,6 +939,201 @@ class RedditFeedReader {
             }, 500);
         }, 3000);
     }
+
+    // Initialize favorites
+    initializeFavorites() {
+        this.favorites = [];
+        this.loadFavoritesFromStorage();
+        this.renderFavoritesList();
+        
+        // Initialize favorite button state
+        this.updateFavoriteButtonState();
+    }
+    
+    // Load favorites from localStorage
+    loadFavoritesFromStorage() {
+        try {
+            const storedFavorites = localStorage.getItem('redditFlowFavorites');
+            if (storedFavorites) {
+                this.favorites = JSON.parse(storedFavorites);
+            }
+        } catch (error) {
+            console.error('Error loading favorites from storage:', error);
+            this.favorites = [];
+        }
+    }
+    
+    // Save favorites to localStorage
+    saveFavoritesToStorage() {
+        try {
+            localStorage.setItem('redditFlowFavorites', JSON.stringify(this.favorites));
+        } catch (error) {
+            console.error('Error saving favorites to storage:', error);
+        }
+    }
+    
+    // Check if current subreddit is favorited
+    isCurrentSubredditFavorited() {
+        if (!this.currentSubreddit) return false;
+        return this.favorites.some(fav => fav.path === this.currentSubreddit);
+    }
+    
+    // Toggle favorite status for current subreddit
+    toggleFavorite() {
+        if (!this.currentSubreddit) return;
+        
+        if (this.isCurrentSubredditFavorited()) {
+            // Remove from favorites
+            this.favorites = this.favorites.filter(fav => fav.path !== this.currentSubreddit);
+        } else {
+            // Add to favorites
+            const label = this.isMultiReddit(this.currentSubreddit) ? 
+                this.getMultiRedditDisplayName(this.currentSubreddit) : 
+                this.currentSubreddit;
+                
+            this.favorites.push({
+                path: this.currentSubreddit,
+                label: label,
+                type: this.isMultiReddit(this.currentSubreddit) ? 'multi' : 'subreddit',
+                timestamp: Date.now()
+            });
+        }
+        
+        // Save favorites and update UI
+        this.saveFavoritesToStorage();
+        this.renderFavoritesList();
+        this.updateFavoriteButtonState();
+        
+        // Animate the favorite button
+        const favoriteButton = document.getElementById('favorite-button');
+        favoriteButton.classList.add('favorite-animation');
+        
+        // Remove the animation class after it completes to allow it to be triggered again
+        setTimeout(() => {
+            favoriteButton.classList.remove('favorite-animation');
+        }, 400); // Match the animation duration in CSS
+    }
+    
+    // Get a display name for a multi-reddit
+    getMultiRedditDisplayName(path) {
+        // Extract the username and multi name from the path
+        const parts = path.split('/').filter(part => part);
+        if (parts.length >= 4 && parts[0] === 'user' && parts[2] === 'm') {
+            return `${parts[1]}'s ${parts[3]}`;
+        }
+        return path;
+    }
+    
+    // Remove a favorite by path
+    removeFavorite(path) {
+        this.favorites = this.favorites.filter(fav => fav.path !== path);
+        this.saveFavoritesToStorage();
+        this.renderFavoritesList();
+        
+        // If the current subreddit was removed from favorites, update button state
+        if (path === this.currentSubreddit) {
+            this.updateFavoriteButtonState();
+        }
+    }
+    
+    // Render favorites list in dropdown
+    renderFavoritesList() {
+        const favoritesList = document.getElementById('favorites-list');
+        const favoritesEmpty = document.querySelector('.favorites-empty');
+        
+        if (!favoritesList) return;
+        
+        favoritesList.innerHTML = '';
+        
+        if (this.favorites.length === 0) {
+            favoritesEmpty.classList.remove('hidden');
+            return;
+        }
+        
+        favoritesEmpty.classList.add('hidden');
+        
+        // Sort favorites by most recently added
+        const sortedFavorites = [...this.favorites].sort((a, b) => b.timestamp - a.timestamp);
+        
+        sortedFavorites.forEach(fav => {
+            const item = document.createElement('div');
+            item.className = 'favorite-item';
+            
+            const itemText = document.createElement('div');
+            itemText.className = 'favorite-item-text';
+            itemText.textContent = fav.label;
+            itemText.title = fav.path;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'favorite-item-remove';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = 'Remove from favorites';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.removeFavorite(fav.path);
+            };
+            
+            item.appendChild(itemText);
+            item.appendChild(removeBtn);
+            
+            item.onclick = () => {
+                this.subredditInput.value = fav.path;
+                this.handleSubredditChange();
+                this.toggleFavoritesDropdown(false); // Close dropdown
+            };
+            
+            favoritesList.appendChild(item);
+        });
+    }
+    
+    // Update favorite button state based on current subreddit
+    updateFavoriteButtonState() {
+        const favoriteButton = document.getElementById('favorite-button');
+        if (!favoriteButton) return;
+        
+        if (!this.currentSubreddit) {
+            favoriteButton.classList.add('hidden');
+            return;
+        }
+        
+        favoriteButton.classList.remove('hidden');
+        
+        // Get the SVG path element
+        const favoriteIconPath = favoriteButton.querySelector('.favorite-path');
+        
+        if (this.isCurrentSubredditFavorited()) {
+            // Set active state with filled icon
+            favoriteButton.classList.add('active');
+            favoriteButton.title = 'Remove from favorites';
+            
+            if (favoriteIconPath) {
+                favoriteIconPath.setAttribute('fill', 'currentColor');
+            }
+        } else {
+            // Set inactive state with outline icon
+            favoriteButton.classList.remove('active');
+            favoriteButton.title = 'Add to favorites';
+            
+            if (favoriteIconPath) {
+                favoriteIconPath.setAttribute('fill', 'none');
+            }
+        }
+    }
+    
+    // Toggle favorites dropdown visibility
+    toggleFavoritesDropdown(forceState = null) {
+        const dropdown = document.getElementById('favorites-dropdown');
+        if (!dropdown) return;
+        
+        if (forceState !== null) {
+            dropdown.classList.toggle('hidden', !forceState);
+        } else {
+            dropdown.classList.toggle('hidden');
+        }
+    }
+    
+    // Empty method to replace showFavoriteConfirmation
+    // We're now using animation instead of notification
 }
 
 // Initialize the application when the DOM is loaded

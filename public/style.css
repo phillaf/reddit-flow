@@ -68,6 +68,7 @@ body {
     top: 0;
     z-index: 100;
     gap: 1rem;
+    flex-wrap: nowrap;
 }
 
 .logo-container {
@@ -99,20 +100,22 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
-    min-width: 350px;
+    min-width: 250px;
+    max-width: 350px;
     order: 2;
     position: relative;
 }
 
 .subreddit-input {
     padding: 0.75rem 1rem;
+    padding-right: 35px; /* Make space for the favorite button */
     border: 2px solid var(--border-color);
     border-radius: 8px;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-size: 1rem;
     width: 350px;
-    min-width: 200px;
+    min-width: 0;
     max-width: 100%;
     transition: all 0.3s ease;
 }
@@ -568,10 +571,6 @@ body {
     color: var(--text-secondary);
 }
 
-.hidden {
-    display: none !important;
-}
-
 /* Footer */
 .footer {
     margin-top: 4rem;
@@ -620,6 +619,10 @@ body {
     background-color: var(--success);
 }
 
+.info-notification {
+    background-color: #3498db;
+}
+
 .notification.fading-out {
     animation: slide-out 0.5s ease-in forwards;
 }
@@ -634,33 +637,208 @@ body {
     100% { transform: translateX(100%); opacity: 0; }
 }
 
-/* Input container */
+/* Input container and favorites */
 .input-container {
     position: relative;
+    display: flex;
+    align-items: center;
 }
 
+.favorite-button {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+    pointer-events: auto;
+}
+
+.favorite-button:hover {
+    color: var(--accent);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.favorite-button.active {
+    color: var(--accent);
+}
+
+.favorite-button.favorite-animation {
+    animation: favorite-pulse 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes favorite-pulse {
+    0% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.5); }
+    100% { transform: translateY(-50%) scale(1); }
+}
+
+.favorites-dropdown-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    order: 3; /* Position between timer and theme toggle on large screens */
+}
+
+.favorites-dropdown-toggle {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+    width: 30px;
+    height: 30px;
+}
+
+.favorites-dropdown-toggle:hover {
+    color: var(--accent);
+    transform: scale(1.1);
+}
+
+.favorites-dropdown-toggle:active {
+    transform: scale(0.95);
+}
+
+.favorites-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    background-color: var(--bg-post);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    width: 240px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+    padding: 10px;
+}
+
+.favorites-dropdown h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: var(--text-primary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.favorites-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+.favorite-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.favorite-item:hover {
+    background-color: var(--bg-secondary);
+}
+
+.favorite-item-text {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.favorite-item-remove {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    margin-left: 5px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.favorite-item-remove:hover {
+    opacity: 1;
+    color: var(--accent);
+}
+
+.favorites-empty {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Media queries for responsive design */
 @media (max-width: 700px) {
+    /* Header layout for small screens */
+    .header {
+        justify-content: space-between;
+        padding: 0.75rem;
+        gap: 0.5rem;
+        /* With logo removed, give more space to input */
+    }
+    
+    /* Hide logo on small screens to save space */
     .logo-container {
-        order: 1;
         display: none;
     }
     
-    /* Timer goes to center of first row */
     .refresh-timer {
-        order: 2;
-        margin-left: unset;
+        order: 1;
     }
     
-    /* Second row: input bar takes full width */
-    .input-container {
-        order: 3;
-        justify-content: stretch;
-        min-width: unset;
-        width: 100%;
+        .input-container {
+        flex: 1;
+        max-width: none;
+        min-width: 0;
+        order: 2;
+        margin-right: 0.25rem;
     }
     
     .subreddit-input {
         width: 100%;
-        max-width: none;
+        min-width: 0;
+        padding-right: 35px; /* Make space for the favorite button */
+    }
+    
+    /* Favorites dropdown after input row */
+    .favorites-dropdown-container {
+        order: 3;
+        margin-left: auto;
+    }
+    
+    /* Theme toggle last */
+    .theme-toggle {
+        order: 4;
+    }
+    
+    /* Dropdown alignment for small screens */
+    .favorites-dropdown {
+        right: auto;
+        left: 0;
+        width: 200px;
     }
 }
