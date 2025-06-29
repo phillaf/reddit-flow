@@ -353,7 +353,7 @@ body {
 .tab-button {
     background: none;
     border: none;
-    padding: 1rem 1.5rem;
+    padding: 0.9rem 1.5rem;
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 500;
@@ -379,15 +379,48 @@ body {
     display: none;
     margin: auto;
     color: inherit;
+    fill: currentColor;
     transition: transform 0.3s ease;
+    width: 28px;
+    height: 28px;
+}
+
+.tab-button[data-sort="hot"] .tab-icon {
+    color: #ff4500; /* Reddit orange/red for flame */
+    fill: #ff4500;
+}
+
+.tab-button[data-sort="new"] .tab-icon {
+    color: #00cec9; /* Teal for new star */
+    fill: #00cec9;
+}
+
+.tab-button[data-sort="top"] .tab-icon {
+    color: #4285f4; /* Blue for top lines */
+    fill: #4285f4;
+}
+
+.tab-button[data-sort="rising"] .tab-icon {
+    color: #9b59b6; /* Purple for rising arrow */
+    fill: #9b59b6;
+}
+
+.tab-button[data-sort="controversial"] .tab-icon {
+    color: #96c93d; /* Green for controversial symbol */
+    fill: #96c93d;
 }
 
 .tab-button:hover .tab-icon {
     transform: scale(1.2);
 }
 
+/* Override specific colors only when button is not active */
+.tab-button:not(.active) .tab-icon {
+    opacity: 0.7;
+}
+
 .tab-button.active .tab-icon {
-    color: var(--accent);
+    opacity: 1;
 }
 
 .tab-text {
@@ -418,7 +451,7 @@ body {
     
     .tab-button {
         flex: 1;
-        padding: 0.75rem 0.25rem;
+        padding: 0.6rem 0.25rem;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -428,8 +461,8 @@ body {
     
     .tab-icon {
         display: block;
-        height: 18px;
-        width: 18px;
+        height: 28px;
+        width: 28px;
     }
     
     .tab-text {
@@ -449,8 +482,8 @@ body {
     }
     
     .tab-icon {
-        width: 16px;
-        height: 16px;
+        width: 24px;
+        height: 24px;
     }
 }
 
