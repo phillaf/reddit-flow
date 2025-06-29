@@ -513,44 +513,30 @@ body {
 }
 
 /* Media queries for responsive container sizing */
-/* Posts container sizing */
-@media (min-width: 700px) {
-    .posts-container {
-        max-width: 1000px; /* Fixed maximum width for medium screens */
-    }
+/* Between 0px and 700px, all containers are full width (default) */
+
+/* From 700px to 1500px, posts container should match header/tabs (full width) */
+@media (min-width: 700px) and (max-width: 1499px) {
+    /* No max-width limits - posts will take full width like header/tabs */
 }
 
+/* At 1500px+, both header/tabs and posts use the same width limitations */
 @media (min-width: 1500px) {
-    .posts-container {
-        max-width: 67%; /* Use fraction of the page width (2/3) on large screens */
-    }
-}
-
-/* Header and tabs sizing */
-/* Between 700px and 1500px, header and tabs take 100% width */
-
-@media (min-width: 1500px) {
-    .header, .tabs {
+    .header, .tabs, .posts-container {
         max-width: 1500px; /* Fixed at 1500px for large screens */
     }
 }
 
-/* Point at which posts width reaches ~1500px (67% of ~2240px viewport) */
+/* When viewport is wide enough that 67% is wider than 1500px */
 @media (min-width: 2240px) {
-    .header, .tabs {
-        max-width: 67%; /* Now match posts width (67%) */
+    .header, .tabs, .posts-container {
+        max-width: 67%; /* All containers use 67% width on very large screens */
     }
 }
 
-/* Special styling for medium-sized screens in dark mode */
-@media (min-width: 700px) {
-    .dark-theme .posts-container {
-        padding: 2rem 1rem;
-    }
-    
-    .dark-theme .post {
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
-    }
+/* Special styling for dark mode */
+.dark-theme .post {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Post Styles */
