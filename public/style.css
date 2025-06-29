@@ -56,6 +56,8 @@ body {
     display: flex;
     flex-direction: column;
     flex: 1;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 /* Header Styles */
@@ -344,7 +346,9 @@ body {
 
 /* Posts Container */
 .posts-container {
-    max-width: 1200px;
+    width: 100%;
+    max-width: 100%; /* Default full width for small screens */
+    min-width: 300px; /* Ensure readable width on narrow screens */
     margin: 0 auto;
     padding: 2rem;
     display: flex;
@@ -352,20 +356,44 @@ body {
     gap: 1rem;
     flex: 1;
     min-height: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+/* Media queries for responsive container sizing */
+@media (min-width: 700px) {
+    .posts-container {
+        max-width: 1000px; /* Fixed maximum width for medium screens */
+    }
+}
+
+@media (min-width: 1500px) {
+    .posts-container {
+        max-width: 67%; /* Use fraction of the page width (2/3) on large screens */
+    }
+}
+
+@media (min-width: 3000px) {
+    .posts-container {
+        max-width: 2000px; /* Cap width at very large screens */
+    }
 }
 
 /* Post Styles */
 .post {
     background-color: var(--bg-post);
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: var(--shadow);
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
     transition: all 0.2s ease;
     opacity: 1;
     transform: translateY(0);
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .post:hover {
@@ -381,9 +409,9 @@ body {
     0% {
         opacity: 1;
         transform: translateY(0);
-        max-height: 200px;
+        max-height: 300px;
         margin-bottom: 1rem;
-        padding: 1.5rem;
+        padding: 1rem;
     }
     50% {
         opacity: 0;
@@ -421,13 +449,13 @@ body {
         opacity: 0;
         transform: translateY(-20px);
         max-height: 0;
-        padding: 0 1.5rem;
+        padding: 0 1rem;
     }
     to {
         opacity: 1;
         transform: translateY(0);
-        max-height: 200px;
-        padding: 1.5rem;
+        max-height: 300px;
+        padding: 1rem;
     }
 }
 
@@ -435,14 +463,14 @@ body {
     from {
         opacity: 1;
         transform: translateY(0);
-        max-height: 200px;
-        padding: 1.5rem;
+        max-height: 300px;
+        padding: 1rem;
     }
     to {
         opacity: 0;
         transform: translateY(-20px);
         max-height: 0;
-        padding: 0 1.5rem;
+        padding: 0 1rem;
     }
 }
 
@@ -464,13 +492,22 @@ body {
     }
 }
 
+.post-voting-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    width: 50px;
+}
+
 .hide-btn {
     background: none;
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 0.25rem 0.5rem;
+    padding: 0.2rem 0.4rem;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
     transition: all 0.3s ease;
     flex-shrink: 0;
@@ -483,44 +520,107 @@ body {
 
 .post-votes {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
-    min-width: 60px;
     text-align: center;
-    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.upvote-icon {
+    color: var(--accent); /* Static color for upvote icon - no hover color change */
+    margin-right: 1px;
+    display: inline-block;
 }
 
 .post-content {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.post-subreddit {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    margin-bottom: 0.25rem;
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.post-subreddit:hover {
+    text-decoration: underline;
+}
+
+/* In the header row, subreddit should grow to fill available space */
+.post-header-row .post-subreddit {
+    flex: 1;
+    margin-bottom: 0;
 }
 
 .post-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text-primary);
     text-decoration: none;
     display: block;
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
 }
 
 .post-title:hover {
     color: var(--accent);
 }
 
+.post-metadata {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+    min-width: 0; /* Ensure flexbox can shrink children properly */
+}
+
+.post-meta-separator {
+    color: var(--text-muted);
+    margin: 0 0.25rem;
+    font-size: 0.8rem;
+}
+
 .post-description-link {
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     text-decoration: none;
-    display: block;
+    display: inline-block;
 }
 
 .post-description-link:hover {
     color: var(--accent);
+}
+
+/* Ensure selftext links have the same style as external links */
+.selftext-link {
+    display: inline-block;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%; /* Ensure selftext uses full available width */
 }
 
 /* Hover effect for selftext posts - both title and description highlight together */
@@ -538,12 +638,28 @@ body {
     color: var(--accent);
 }
 
+/* Add a subtle indicator for links */
+.post-description-link {
+    position: relative;
+    padding-right: 1rem;
+}
+
+.external-link::after {
+    content: "↗";
+    font-size: 0.7rem;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.7;
+}
+
 .post-time {
     color: var(--text-muted);
     font-size: 0.8rem;
     flex-shrink: 0;
-    min-width: 80px;
-    text-align: right;
+    white-space: nowrap;
+    margin-right: 0.5rem;
 }
 
 /* Loading and Error States */
@@ -810,7 +926,7 @@ body {
         order: 1;
     }
     
-        .input-container {
+    .input-container {
         flex: 1;
         max-width: none;
         min-width: 0;
@@ -841,4 +957,173 @@ body {
         left: 0;
         width: 200px;
     }
+    
+    /* Post styling for small screens */
+    .post {
+        padding: 0.75rem;
+        gap: 0.25rem;
+    }
+    
+    .post-title {
+        font-size: 0.95rem;
+    }
+    
+    .post-description-link {
+        font-size: 0.8rem;
+    }
+    
+    .posts-container {
+        padding: 1rem;
+        width: 100%;
+        max-width: 100%; /* Override the 67% on small screens */
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+    
+    /* Show the header row on small screens */
+    .post-header-row {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+        flex-wrap: nowrap;
+    }
+    
+    /* Show header row and hide voting section on small screens */
+    .post-header-row {
+        display: flex;
+    }
+    
+    .post-voting-section {
+        display: none;
+    }
+    
+    /* Style the elements in the header row */
+    .post-header-row .hide-btn {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.3rem;
+        margin: 0;
+    }
+    
+    .post-header-row .post-votes {
+        font-size: 0.75rem;
+        min-width: auto;
+        display: flex;
+        align-items: center;
+    }
+    
+    .post-header-row .post-subreddit {
+        margin-bottom: 0;
+        flex-grow: 1;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    
+    .post-content {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+    
+    /* Hide the subreddit in the content div since it's in the header row */
+    .post-content .post-subreddit {
+        display: none;
+    }
+}
+
+/* Post Header Row - visible only on small screens */
+.post-header-row {
+    display: none; /* Hidden by default on large screens */
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+/* Post voting section - visible by default on large screens */
+.post-voting-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    width: 50px;
+}
+
+.post-header-row .hide-btn,
+.post-header-row .post-votes,
+.post-header-row .post-subreddit {
+    display: inline-flex; /* Ensure these elements are visible */
+    align-items: center;
+}
+
+.post-header-row {
+    background-color: var(--bg-secondary);
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+}
+
+/* Small screen layout */
+@media (max-width: 700px) {
+    /* Show mobile content wrapper, hide desktop content */
+    .mobile-content-wrapper {
+        display: flex !important;
+        flex-direction: column;
+    }
+    
+    /* Show header row at the top of mobile content */
+    .post-header-row {
+        display: flex !important;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        margin-bottom: 0.75rem;
+        gap: 0.5rem;
+    }
+    
+    /* Hide duplicate desktop content */
+    .post-voting-section, 
+    .post-content {
+        display: none !important;
+    }
+}
+
+.mobile-content-wrapper {
+    display: none; /* Hidden by default on large screens */
+    flex-direction: column;
+    width: 100%;
+}
+
+/* Handle duplicate content in the DOM */
+.post-header-row .post-title,
+.post-header-row .post-metadata {
+    display: none; /* These are duplicates and should be hidden */
+}
+
+.mobile-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+}
+
+.mobile-title:hover {
+    color: var(--accent);
+}
+
+.mobile-metadata {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
 }

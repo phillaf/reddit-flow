@@ -543,14 +543,64 @@ class RedditFeedReader {
             postDiv.classList.add('hidden');
         }
         
+        // Create header row for the post (will hold hide button, votes, and subreddit)
+        const postHeaderRow = document.createElement('div');
+        postHeaderRow.className = 'post-header-row';
+        
+        // Create voting section to contain both hide button and votes for large screens
+        const votingSection = document.createElement('div');
+        votingSection.className = 'post-voting-section';
+        
+        // Create hide button - will be used in both layouts
         const hideButton = document.createElement('button');
         hideButton.className = 'hide-btn';
         hideButton.textContent = 'Hide';
         hideButton.onclick = () => this.hidePost(post.id);
         
+        // Create a clone for the header row
+        const hideButtonMobile = hideButton.cloneNode(true);
+        hideButtonMobile.onclick = () => this.hidePost(post.id);
+        
+        // Create votes div - will be used in both layouts
         const votesDiv = document.createElement('div');
         votesDiv.className = 'post-votes';
-        votesDiv.textContent = this.formatNumber(post.ups);
+        
+        // Add an upvote icon
+        const upvoteIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        upvoteIcon.setAttribute("width", "12");
+        upvoteIcon.setAttribute("height", "12");
+        upvoteIcon.setAttribute("viewBox", "0 0 24 24");
+        upvoteIcon.setAttribute("class", "upvote-icon");
+        upvoteIcon.innerHTML = `<path d="M12 4l8 8h-6v8h-4v-8H4z" fill="currentColor"/>`;
+        
+        const votesText = document.createElement('span');
+        votesText.textContent = this.formatNumber(post.ups);
+        
+        votesDiv.appendChild(upvoteIcon);
+        votesDiv.appendChild(votesText);
+        
+        // Clone for mobile view
+        const votesDivMobile = votesDiv.cloneNode(true);
+        
+        // Create subreddit link
+        const subredditLink = document.createElement('a');
+        subredditLink.className = 'post-subreddit';
+        const subredditName = post.subreddit_name_prefixed || `r/${post.subreddit}`;
+        subredditLink.href = `https://reddit.com/${subredditName}`;
+        subredditLink.textContent = subredditName;
+        subredditLink.target = '_blank';
+        
+        // Clone for the content area (large screens)
+        const subredditLinkDesktop = subredditLink.cloneNode(true);
+        
+        // Add elements to voting section for large screens
+        votingSection.appendChild(hideButton);
+        votingSection.appendChild(votesDiv);
+        
+        // Add elements to header row for small screens
+        postHeaderRow.appendChild(hideButtonMobile);
+        postHeaderRow.appendChild(votesDivMobile);
+        postHeaderRow.appendChild(subredditLink);
         
         const contentDiv = document.createElement('div');
         contentDiv.className = 'post-content';
@@ -568,45 +618,116 @@ class RedditFeedReader {
         titleLink.target = '_blank';
         titleLink.textContent = post.title;
         
-        const descriptionElement = document.createElement('div');
-        descriptionElement.className = 'post-description';
+        // Create metadata container for time and description
+        const metadataDiv = document.createElement('div');
+        metadataDiv.className = 'post-metadata';
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'post-time';
+        timeSpan.textContent = this.formatTimeAgo(post.created_utc);
+        metadataDiv.appendChild(timeSpan);
         
         let hasDescription = false;
         
         if (post.selftext && post.selftext.trim()) {
+            // Add a separator between time and selftext
+            const separator = document.createElement('span');
+            separator.className = 'post-meta-separator';
+            separator.textContent = '•';
+            metadataDiv.appendChild(separator);
+            
             // Posts with selftext - both title and description link to Reddit
             const descriptionLink = document.createElement('a');
             descriptionLink.href = `https://reddit.com${post.permalink}`;
             descriptionLink.target = '_blank';
             descriptionLink.textContent = post.selftext;
             descriptionLink.className = 'post-description-link selftext-link';
-            descriptionElement.appendChild(descriptionLink);
+            metadataDiv.appendChild(descriptionLink);
             hasDescription = true;
         } else if (!post.is_self && post.domain && post.url_overridden_by_dest && !post.is_reddit_media_domain) {
+            // Add a separator between time and domain
+            const separator = document.createElement('span');
+            separator.className = 'post-meta-separator';
+            separator.textContent = '•';
+            metadataDiv.appendChild(separator);
+            
             // Posts linking to external articles - exclude Reddit-hosted media
             const domainLink = document.createElement('a');
             domainLink.href = post.url_overridden_by_dest;
             domainLink.target = '_blank';
             domainLink.textContent = post.domain;
             domainLink.className = 'post-description-link external-link';
-            descriptionElement.appendChild(domainLink);
+            metadataDiv.appendChild(domainLink);
             hasDescription = true;
         }
         // Posts that are neither selftext nor external links (including Reddit videos, images, etc.) will have no description
         
-        const timeDiv = document.createElement('div');
-        timeDiv.className = 'post-time';
-        timeDiv.textContent = this.formatTimeAgo(post.created_utc);
-        
+        // Insert the desktop subreddit link to content for large screens
+        contentDiv.insertBefore(subredditLinkDesktop, contentDiv.firstChild);
         contentDiv.appendChild(titleLink);
+        contentDiv.appendChild(metadataDiv);
+        
+        // Create a content wrapper for small screens to control ordering
+        const mobileContentWrapper = document.createElement('div');
+        mobileContentWrapper.className = 'mobile-content-wrapper';
+        
+        // Append all elements to the post
+        postDiv.appendChild(votingSection);  // For large screens
+        postDiv.appendChild(contentDiv);     // For large screens
+        
+        // Create mobile content elements with proper event handling
+        const mobileTitleLink = document.createElement('a');
+        mobileTitleLink.className = 'post-title mobile-title';
+        mobileTitleLink.href = `https://reddit.com${post.permalink}`;
+        mobileTitleLink.target = '_blank';
+        mobileTitleLink.textContent = post.title;
+        
+        // Clone metadata with proper event handling
+        const mobileMetadataDiv = document.createElement('div');
+        mobileMetadataDiv.className = 'post-metadata mobile-metadata';
+        
+        const mobileTimeSpan = document.createElement('span');
+        mobileTimeSpan.className = 'post-time';
+        mobileTimeSpan.textContent = this.formatTimeAgo(post.created_utc);
+        mobileMetadataDiv.appendChild(mobileTimeSpan);
+        
+        // Add description link if exists
         if (hasDescription) {
-            contentDiv.appendChild(descriptionElement);
+            if (post.selftext && post.selftext.trim()) {
+                // Add a separator between time and selftext
+                const mobileSeparator = document.createElement('span');
+                mobileSeparator.className = 'post-meta-separator';
+                mobileSeparator.textContent = '•';
+                mobileMetadataDiv.appendChild(mobileSeparator);
+                
+                const mobileDescLink = document.createElement('a');
+                mobileDescLink.href = `https://reddit.com${post.permalink}`;
+                mobileDescLink.target = '_blank';
+                mobileDescLink.textContent = post.selftext;
+                mobileDescLink.className = 'post-description-link selftext-link';
+                mobileMetadataDiv.appendChild(mobileDescLink);
+            } else if (!post.is_self && post.domain && post.url_overridden_by_dest && !post.is_reddit_media_domain) {
+                // Add a separator between time and domain
+                const mobileSeparator = document.createElement('span');
+                mobileSeparator.className = 'post-meta-separator';
+                mobileSeparator.textContent = '•';
+                mobileMetadataDiv.appendChild(mobileSeparator);
+                
+                const mobileDomainLink = document.createElement('a');
+                mobileDomainLink.href = post.url_overridden_by_dest;
+                mobileDomainLink.target = '_blank';
+                mobileDomainLink.textContent = post.domain;
+                mobileDomainLink.className = 'post-description-link external-link';
+                mobileMetadataDiv.appendChild(mobileDomainLink);
+            }
         }
         
-        postDiv.appendChild(hideButton);
-        postDiv.appendChild(votesDiv);
-        postDiv.appendChild(contentDiv);
-        postDiv.appendChild(timeDiv);
+        // For small screens, first the header row then the content
+        mobileContentWrapper.appendChild(postHeaderRow);  // Header row first on mobile
+        mobileContentWrapper.appendChild(mobileTitleLink); // Then the title
+        mobileContentWrapper.appendChild(mobileMetadataDiv); // Then metadata
+        
+        postDiv.appendChild(mobileContentWrapper);  // Add mobile wrapper to post
         
         return postDiv;
     }
