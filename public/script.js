@@ -208,7 +208,10 @@ class RedditFeedReader {
     }
 
     setTheme(theme) {
+        // Apply theme to both app element and html element for consistent background
         this.app.className = `${theme}-theme`;
+        document.documentElement.className = theme === 'dark' ? 'dark-theme' : '';
+        
         const themeIcon = this.themeToggle.querySelector('.theme-icon');
         
         if (theme === 'light') {
