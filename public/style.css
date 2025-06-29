@@ -972,7 +972,9 @@ body {
 .favorites-dropdown {
     position: absolute;
     top: calc(100% + 5px);
-    right: 0;
+    right: auto;
+    left: 50%; /* Center relative to button */
+    transform: translateX(-90%); /* Shift left to appear on left side of button */
     background-color: var(--bg-post);
     border-radius: 4px;
     box-shadow: var(--shadow);
@@ -1094,10 +1096,8 @@ body {
         order: 4;
     }
     
-    /* Dropdown alignment for small screens */
+    /* Dropdown width for small screens */
     .favorites-dropdown {
-        right: auto;
-        left: 0;
         width: 200px;
     }
     
@@ -1320,3 +1320,5 @@ body {
 .dark-theme .header-container::after {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
+
+
