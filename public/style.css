@@ -14,7 +14,7 @@ html {
 }
 
 html.dark-theme {
-    background-color: var(--bg-secondary, #2d2d2d); /* Default to dark theme background if variables not loaded yet */
+    background-color: var(--bg-secondary, #222222); /* Match the new darker background */
 }
 
 body {
@@ -50,8 +50,8 @@ body {
 
 .dark-theme {
     --bg-primary: #1a1a1a;
-    --bg-secondary: #2d2d2d;
-    --bg-post: #2d2d2d;
+    --bg-secondary: #222222; /* Darker background for main content area */
+    --bg-post: #2a2a2a;     /* Lighter shade for posts to create contrast */
     --text-primary: #ffffff;
     --text-secondary: #b0b0b0;
     --text-muted: #888888;
@@ -338,28 +338,83 @@ body {
     border-bottom-color: var(--accent);
 }
 
+/* Tab icon and text styles */
+.tab-icon {
+    display: none;
+    margin: auto;
+    color: inherit;
+    transition: transform 0.3s ease;
+}
+
+.tab-button:hover .tab-icon {
+    transform: scale(1.2);
+}
+
+.tab-button.active .tab-icon {
+    color: var(--accent);
+}
+
+.tab-text {
+    display: inline;
+}
+
+/* Medium screen tabs - show both icon and text */
+@media (min-width: 401px) and (max-width: 700px) {
+    .tab-button {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .tab-text {
+        display: block;
+        font-size: 0.7rem;
+        margin-top: 0.25rem;
+    }
+}
+
 /* Mobile tabs styling */
 @media (max-width: 700px) {
     .tabs {
-        padding: 0 1rem;
+        padding: 0;
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+    
+    .tab-button {
+        flex: 1;
+        padding: 0.75rem 0.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
+        border-bottom-width: 2px;
     }
     
-    .tab-button {
-        flex: 1 1 auto;
-        padding: 0.75rem 0.5rem;
-        font-size: 0.85rem;
+    .tab-icon {
+        display: block;
+        height: 18px;
+        width: 18px;
     }
     
-    /* Tabs now wrap to multiple lines */
+    .tab-text {
+        display: none; /* Hide text on small screens */
+    }
     
-    /* No drag cursor needed */
-    
+    /* Active tab indicator */
+    .tab-button.active {
+        background-color: var(--bg-secondary);
+    }
+}
+
+/* Very small screens - ensure icons are spaced well */
+@media (max-width: 400px) {
     .tab-button {
-        padding: 0.75rem 1.2rem;
-        font-size: 0.85rem;
+        padding: 0.75rem 0.15rem;
+    }
+    
+    .tab-icon {
+        width: 16px;
+        height: 16px;
     }
 }
 
@@ -395,6 +450,17 @@ body {
 @media (min-width: 3000px) {
     .posts-container {
         max-width: 2000px; /* Cap width at very large screens */
+    }
+}
+
+/* Special styling for medium-sized screens in dark mode */
+@media (min-width: 700px) {
+    .dark-theme .posts-container {
+        padding: 2rem 1rem;
+    }
+    
+    .dark-theme .post {
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
     }
 }
 
@@ -1146,4 +1212,24 @@ body {
     overflow: hidden;
     white-space: nowrap;
     width: 100%;
+}
+
+/* Enhanced dark mode post styling */
+.dark-theme .post {
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease, border-color 0.3s ease;
+}
+
+.dark-theme .post:hover {
+    border-color: #505050;
+}
+
+/* Subtle header background in dark theme for better layering */
+.dark-theme .post-header-row {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Slightly more visible selection for tab buttons in dark mode */
+.dark-theme .tab-button.active {
+    background-color: rgba(255, 69, 0, 0.05);
 }

@@ -52,11 +52,41 @@
         </header>
 
         <nav class="tabs">
-            <button class="tab-button active" data-sort="hot">Hot</button>
-            <button class="tab-button" data-sort="new">New</button>
-            <button class="tab-button" data-sort="rising">Rising</button>
-            <button class="tab-button" data-sort="controversial">Controversial</button>
-            <button class="tab-button" data-sort="top">Top</button>
+            <button class="tab-button active" data-sort="hot">
+                <svg class="tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446 9 9 0 1 1 -8.313 -12.454z" />
+                    <path d="M18 6a4 4 0 0 0 -3 7h-3" stroke="currentColor" fill="none" />
+                </svg>
+                <span class="tab-text">Hot</span>
+            </button>
+            <button class="tab-button" data-sort="new">
+                <svg class="tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v10l4 4" />
+                    <circle cx="12" cy="12" r="10" />
+                </svg>
+                <span class="tab-text">New</span>
+            </button>
+            <button class="tab-button" data-sort="rising">
+                <svg class="tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13 7h-6l2 5-2 5h6l2-5z" />
+                    <path d="M13 7l2 5-2 5" />
+                    <path d="M13 7h4l2 5-2 5h-4" />
+                </svg>
+                <span class="tab-text">Rising</span>
+            </button>
+            <button class="tab-button" data-sort="controversial">
+                <svg class="tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                </svg>
+                <span class="tab-text">Controversial</span>
+            </button>
+            <button class="tab-button" data-sort="top">
+                <svg class="tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="18 15 12 9 6 15" />
+                </svg>
+                <span class="tab-text">Top</span>
+            </button>
         </nav>
 
         <main id="posts-container" class="posts-container">
