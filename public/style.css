@@ -548,12 +548,16 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
-    transition: all 0.2s ease;
-    opacity: 1;
+    transition: opacity 0.1s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    opacity: 0; /* Start hidden to prevent flash */
     transform: translateY(0);
     position: relative;
     width: 100%;
     box-sizing: border-box;
+}
+
+.post.visible {
+    opacity: 1; /* Make visible when ready */
 }
 
 .post:hover {
@@ -1068,6 +1072,7 @@ body {
 
 .hidden {
     display: none !important;
+    opacity: 0 !important; /* Ensure hidden posts are invisible */
 }
 
 /* Media queries for responsive design */

@@ -542,8 +542,12 @@ class RedditFeedReader {
         postDiv.className = 'post';
         postDiv.setAttribute('data-post-id', post.id);
         
+        // Apply hidden class immediately to prevent flash
         if (this.isPostHidden(post.id)) {
             postDiv.classList.add('hidden');
+        } else {
+            // Add visible class for posts that should be shown
+            postDiv.classList.add('visible');
         }
         
         // Create header row for the post (will hold hide button, votes, and subreddit)
@@ -752,6 +756,7 @@ class RedditFeedReader {
         // Find and hide all elements with this post ID (in case it appears multiple times)
         const postElements = document.querySelectorAll(`[data-post-id="${postId}"]`);
         postElements.forEach(postElement => {
+            postElement.classList.remove('visible');
             postElement.classList.add('hiding');
             // After animation completes, remove from DOM
             setTimeout(() => {
