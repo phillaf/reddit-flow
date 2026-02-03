@@ -560,6 +560,10 @@ body {
     opacity: 1; /* Make visible when ready */
 }
 
+.post.hidden {
+    display: none !important; /* Completely hide hidden posts */
+}
+
 .post:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     transform: translateY(-2px);
