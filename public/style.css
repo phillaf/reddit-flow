@@ -427,66 +427,6 @@ body {
     display: inline;
 }
 
-/* Medium screen tabs - show both icon and text */
-@media (min-width: 401px) and (max-width: 700px) {
-    .tab-button {
-        padding: 0.75rem 0.5rem;
-    }
-    
-    .tab-text {
-        display: block;
-        font-size: 0.7rem;
-        margin-top: 0.25rem;
-    }
-}
-
-/* Mobile tabs styling */
-@media (max-width: 700px) {
-    .tabs {
-        padding: 0;
-        display: flex;
-        flex-wrap: nowrap;
-        justify-content: space-between;
-    }
-    
-    .tab-button {
-        flex: 1;
-        padding: 0.6rem 0.25rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        border-bottom-width: 2px;
-    }
-    
-    .tab-icon {
-        display: block;
-        height: 28px;
-        width: 28px;
-    }
-    
-    .tab-text {
-        display: none; /* Hide text on small screens */
-    }
-    
-    /* Active tab indicator */
-    .tab-button.active {
-        background-color: var(--bg-secondary);
-    }
-}
-
-/* Very small screens - ensure icons are spaced well */
-@media (max-width: 400px) {
-    .tab-button {
-        padding: 0.75rem 0.15rem;
-    }
-    
-    .tab-icon {
-        width: 24px;
-        height: 24px;
-    }
-}
-
 /* Full width background colors for containers */
 .header-container {
     background-color: var(--bg-primary);
@@ -510,33 +450,6 @@ body {
     min-height: 0;
     box-sizing: border-box;
     overflow-x: hidden;
-}
-
-/* Media queries for responsive container sizing */
-/* Between 0px and 700px, all containers are full width (default) */
-
-/* From 700px to 1500px, posts container should match header/tabs (full width) */
-@media (min-width: 700px) and (max-width: 1499px) {
-    /* No max-width limits - posts will take full width like header/tabs */
-}
-
-/* At 1500px+, both header/tabs and posts use the same width limitations */
-@media (min-width: 1500px) {
-    .header, .tabs, .posts-container {
-        max-width: 1500px; /* Fixed at 1500px for large screens */
-    }
-}
-
-/* When viewport is wide enough that 67% is wider than 1500px */
-@media (min-width: 2240px) {
-    .header, .tabs, .posts-container {
-        max-width: 67%; /* All containers use 67% width on very large screens */
-    }
-}
-
-/* Special styling for dark mode */
-.dark-theme .post {
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Post Styles */
@@ -718,12 +631,6 @@ body {
 
 .post-subreddit:hover {
     text-decoration: underline;
-}
-
-/* In the header row, subreddit should grow to fill available space */
-.post-header-row .post-subreddit {
-    flex: 1;
-    margin-bottom: 0;
 }
 
 .post-title {
@@ -1070,28 +977,22 @@ body {
 
 .hidden {
     display: none !important;
-    opacity: 0 !important; /* Ensure hidden posts are invisible */
 }
 
-/* Media queries for responsive design */
+/* =============================================================================
+   RESPONSIVE LAYOUT - MOBILE (max-width: 700px)
+   ============================================================================= */
 @media (max-width: 700px) {
-    /* Header layout for small screens */
+    /* Header */
     .header {
         justify-content: space-between;
         padding: 0.75rem;
         gap: 0.5rem;
         max-width: 100%;
-        /* With logo removed, give more space to input */
     }
     
-    /* Hide logo on small screens to save space */
-    .logo-container {
-        display: none;
-    }
-    
-    .refresh-timer {
-        order: 1;
-    }
+    .logo-container { display: none; }
+    .refresh-timer { order: 1; }
     
     .input-container {
         flex: 1;
@@ -1104,138 +1005,70 @@ body {
     .subreddit-input {
         width: 100%;
         min-width: 0;
-        padding-right: 35px; /* Make space for the favorite button */
+        padding-right: 35px;
     }
     
-    /* Favorites dropdown after input row */
     .favorites-dropdown-container {
         order: 3;
         margin-left: auto;
     }
     
-    /* Theme toggle last */
-    .theme-toggle {
-        order: 4;
+    .theme-toggle { order: 4; }
+    .favorites-dropdown { width: 200px; }
+    
+    /* Containers */
+    .header-container, .tabs-container { padding: 0; }
+    .header, .tabs { padding-left: 1rem; padding-right: 1rem; }
+    
+    .posts-container {
+        padding: 1rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
     
-    /* Dropdown width for small screens */
-    .favorites-dropdown {
-        width: 200px;
+    /* Tabs */
+    .tabs {
+        padding: 0;
+        flex-wrap: nowrap;
+        justify-content: space-between;
     }
     
-    /* Post styling for small screens */
+    .tab-button {
+        flex: 1;
+        padding: 0.6rem 0.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-bottom-width: 2px;
+    }
+    
+    .tab-button.active { background-color: var(--bg-secondary); }
+    .tab-icon { display: block; height: 28px; width: 28px; }
+    .tab-text { display: none; }
+    
+    /* Posts - Mobile Layout */
     .post {
         padding: 0.75rem;
         gap: 0.25rem;
     }
     
-    .post-title {
-        font-size: 0.95rem;
-    }
+    .post-title { font-size: 0.95rem; }
+    .post-description-link { font-size: 0.8rem; }
     
-    .post-description-link {
-        font-size: 0.8rem;
-    }
-    
-    .posts-container {
-        padding: 1rem;
-        width: 100%;
-        max-width: 100%; /* Override the 67% on small screens */
-        box-sizing: border-box;
-        overflow-x: hidden;
-    }
-    
-    /* Show the header row on small screens */
-    .post-header-row {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        gap: 0.75rem;
-        margin-bottom: 0.5rem;
-        flex-wrap: nowrap;
-    }
-    
-    /* Show header row and hide voting section on small screens */
-    .post-header-row {
-        display: flex;
-    }
-    
-    .post-voting-section {
-        display: none;
-    }
-    
-    /* Style the elements in the header row */
-    .post-header-row .hide-btn {
-        font-size: 0.7rem;
-        padding: 0.15rem 0.3rem;
-        margin: 0;
-    }
-    
-    .post-header-row .post-votes {
-        font-size: 0.75rem;
-        min-width: auto;
-        display: flex;
-        align-items: center;
-    }
-    
-    .post-header-row .post-subreddit {
-        margin-bottom: 0;
-        flex-grow: 1;
-        text-overflow: ellipsis;
-        overflow: hidden;
-    }
-    
-    .post-content {
-        flex: 1 1 100%;
-        width: 100%;
-    }
-    
-    /* Hide the subreddit in the content div since it's in the header row */
-    .post-content .post-subreddit {
-        display: none;
-    }
-}
-
-/* Post Header Row - visible only on small screens */
-.post-header-row {
-    display: none; /* Hidden by default on large screens */
-    width: 100%;
-    box-sizing: border-box;
-    max-width: 100%;
-}
-
-/* Post voting section - visible by default on large screens */
-.post-voting-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
-    width: 50px;
-}
-
-.post-header-row .hide-btn,
-.post-header-row .post-votes,
-.post-header-row .post-subreddit {
-    display: inline-flex; /* Ensure these elements are visible */
-    align-items: center;
-}
-
-.post-header-row {
-    background-color: var(--bg-secondary);
-    padding: 0.3rem 0.5rem;
-    border-radius: 6px;
-}
-
-/* Small screen layout */
-@media (max-width: 700px) {
-    /* Show mobile content wrapper, hide desktop content */
+    /* Show mobile layout, hide desktop layout */
     .mobile-content-wrapper {
         display: flex !important;
         flex-direction: column;
     }
     
-    /* Show header row at the top of mobile content */
+    .post-voting-section,
+    .post-content {
+        display: none !important;
+    }
+    
     .post-header-row {
         display: flex !important;
         align-items: center;
@@ -1245,25 +1078,88 @@ body {
         gap: 0.5rem;
     }
     
-    /* Hide duplicate desktop content */
-    .post-voting-section, 
-    .post-content {
-        display: none !important;
+    .post-header-row .hide-btn {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.3rem;
+        margin: 0;
+    }
+    
+    .post-header-row .post-votes {
+        font-size: 0.75rem;
+        min-width: auto;
+    }
+    
+    .post-header-row .post-subreddit {
+        margin-bottom: 0;
+        flex-grow: 1;
+        text-overflow: ellipsis;
+        overflow: hidden;
     }
 }
 
+/* Very small screens */
+@media (max-width: 400px) {
+    .tab-button { padding: 0.75rem 0.15rem; }
+    .tab-icon { width: 24px; height: 24px; }
+}
+
+/* Medium screens - show both icon and text in tabs */
+@media (min-width: 401px) and (max-width: 700px) {
+    .tab-button { padding: 0.75rem 0.5rem; }
+    .tab-text { display: block; font-size: 0.7rem; margin-top: 0.25rem; }
+}
+
+/* =============================================================================
+   RESPONSIVE LAYOUT - LARGE SCREENS
+   ============================================================================= */
+@media (min-width: 700px) and (max-width: 1500px) {
+    .header-container, .tabs-container { padding: 0; }
+}
+
+@media (min-width: 1500px) {
+    .header, .tabs, .posts-container { max-width: 1500px; }
+    .header-container, .tabs-container { padding: 0; }
+}
+
+@media (min-width: 2240px) {
+    .header, .tabs, .posts-container { max-width: 67%; }
+}
+
+/* =============================================================================
+   DESKTOP-ONLY STYLES
+   ============================================================================= */
+/* Post Header Row - hidden on desktop */
+.post-header-row {
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+    background-color: var(--bg-secondary);
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+}
+
+.post-header-row .hide-btn,
+.post-header-row .post-votes,
+.post-header-row .post-subreddit {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* These would be duplicates if they existed in header row */
+.post-header-row .post-title,
+.post-header-row .post-metadata {
+    display: none;
+}
+
+/* Mobile content wrapper - hidden on desktop */
 .mobile-content-wrapper {
-    display: none; /* Hidden by default on large screens */
+    display: none;
     flex-direction: column;
     width: 100%;
 }
 
-/* Handle duplicate content in the DOM */
-.post-header-row .post-title,
-.post-header-row .post-metadata {
-    display: none; /* These are duplicates and should be hidden */
-}
-
+/* Mobile-specific title/metadata styles */
 .mobile-title {
     font-size: 0.95rem;
     font-weight: 600;
@@ -1277,9 +1173,7 @@ body {
     hyphens: auto;
 }
 
-.mobile-title:hover {
-    color: var(--accent);
-}
+.mobile-title:hover { color: var(--accent); }
 
 .mobile-metadata {
     display: flex;
@@ -1293,54 +1187,22 @@ body {
     width: 100%;
 }
 
-/* Adjust padding for different screen sizes */
-@media (max-width: 700px) {
-    .header-container, .tabs-container {
-        padding: 0;
-    }
-    
-    .header, .tabs {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
+/* Header row subreddit styling */
+.post-header-row .post-subreddit {
+    flex: 1;
+    margin-bottom: 0;
 }
 
-/* No padding constraints for medium screens - allow full width */
-@media (min-width: 700px) and (max-width: 1500px) {
-    .header-container, .tabs-container {
-        padding: 0;
-    }
-}
-
-@media (min-width: 1500px) {
-    .header-container, .tabs-container {
-        padding: 0;
-    }
-}
-
-/* Enhanced dark mode post styling */
+/* =============================================================================
+   DARK THEME ENHANCEMENTS
+   ============================================================================= */
 .dark-theme .post {
     border: 1px solid var(--border-color);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
     transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.3s ease;
 }
 
-.dark-theme .post:hover {
-    border-color: #505050;
-}
-
-/* Subtle header background in dark theme for better layering */
-.dark-theme .post-header-row {
-    background-color: rgba(0, 0, 0, 0.1);
-}
-
-/* Slightly more visible selection for tab buttons in dark mode */
-.dark-theme .tab-button.active {
-    background-color: rgba(255, 69, 0, 0.05);
-}
-
-/* Dark mode shadow adjustment */
-.dark-theme .header-container::after {
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-}
-
-
+.dark-theme .post:hover { border-color: #505050; }
+.dark-theme .post-header-row { background-color: rgba(0, 0, 0, 0.1); }
+.dark-theme .tab-button.active { background-color: rgba(255, 69, 0, 0.05); }
+.dark-theme .header-container::after { box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); }

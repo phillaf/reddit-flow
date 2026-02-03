@@ -1,40 +1,69 @@
+// Configuration constants
+const CONFIG = {
+    REFRESH_INTERVAL: 60,        // seconds
+    ANIMATION_DURATION: 500,     // milliseconds
+    SHOCKWAVE_SIZE: 100,         // pixels
+    TIMER_CIRCUMFERENCE: 62.83,  // 2π * 10 (radius)
+    PREFETCH_DELAY: 100,         // ms between prefetch requests
+    HIDE_ANIMATION_DURATION: 220,// ms for hide animation
+    SORT_TABS: ['hot', 'new', 'rising', 'controversial', 'top'],
+};
+
+// SVG icon paths
+const ICONS = {
+    MOON: '<path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path>',
+    SUN: '<circle cx="12" cy="12" r="4" fill="currentColor"></circle><path d="m12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>',
+    UPVOTE: '<path d="M12 4l8 8h-6v8h-4v-8H4z" fill="currentColor"/>',
+};
+
+// DOM helper utilities
+const DOM = {
+    create(tag, className, attrs = {}) {
+        const el = document.createElement(tag);
+        if (className) el.className = className;
+        Object.entries(attrs).forEach(([key, value]) => {
+            if (key === 'text') el.textContent = value;
+            else if (key === 'html') el.innerHTML = value;
+            else el.setAttribute(key, value);
+        });
+        return el;
+    },
+    
+    createSVG(width, height, viewBox, className, innerHTML) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', width);
+        svg.setAttribute('height', height);
+        svg.setAttribute('viewBox', viewBox);
+        if (className) svg.setAttribute('class', className);
+        svg.innerHTML = innerHTML;
+        return svg;
+    },
+    
+    createLink(className, href, text, target = '_blank') {
+        const link = DOM.create('a', className, { href, text, target });
+        return link;
+    },
+};
+
 class RedditFeedReader {
     constructor() {
-        // Constants
-        this.REFRESH_INTERVAL = 60; // seconds
-        this.ANIMATION_DURATION = 500; // milliseconds
-        this.SHOCKWAVE_SIZE = 100; // pixels
-        this.TIMER_CIRCUMFERENCE = 62.83; // 2π * 10 (radius)
-        
-        // Theme icon constants
-        this.THEME_ICONS = {
-            MOON: '<path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path>',
-            SUN: '<circle cx="12" cy="12" r="4" fill="currentColor"></circle><path d="m12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>'
-        };
-        
+        // State
         this.currentSubreddit = '';
         this.currentSort = 'hot';
         this.posts = [];
-        
-        // Available sort tabs for prefetching
-        this.SORT_TABS = ['hot', 'new', 'rising', 'controversial', 'top'];
-        
-        // Cache for prefetched posts: { subreddit: { sort: posts[] } }
         this.prefetchCache = {};
-        
-        // Initialize hiddenPosts as an object with subreddit keys and Set values
         this.hiddenPosts = {};
-        this.loadHiddenPostsFromStorage();
-        
-        // Initialize favorites
         this.favorites = [];
         
-        this.refreshInterval = null;
+        // Timer state
         this.timerInterval = null;
-        this.refreshTimer = this.REFRESH_INTERVAL;
         this.currentTimer = 0;
+        
+        // UI state
         this.isLoading = false;
         this.hasError = false;
+        
+        this.loadHiddenPostsFromStorage();
         
         this.initializeElements();
         this.bindEvents();
@@ -128,45 +157,24 @@ class RedditFeedReader {
     }
 
     initializeFromURL() {
-        const path = window.location.pathname;
-        const pathParts = path.split('/').filter(part => part);
+        const parts = window.location.pathname.split('/').filter(Boolean);
         
-        if (pathParts.length >= 2 && pathParts[0] === 'r') {
-            // URL format: /r/subreddit or /r/subreddit/sort
-            const subreddit = pathParts[1];
-            const sort = pathParts[2] || 'hot';
-            
-            this.currentSubreddit = subreddit;
-            this.currentSort = sort;
-            this.subredditInput.value = subreddit;
-            this.updateActiveTab();
-            
-            // Load posts if we have a subreddit
-            if (this.currentSubreddit) {
-                this.loadPosts();
-            }
-        } else if (pathParts.length >= 4 && pathParts[0] === 'user' && pathParts[2] === 'm') {
-            // URL format: /user/username/m/multiname or /user/username/m/multiname/sort
-            // Construct the multi-reddit path
-            const multiRedditPath = `/${pathParts.slice(0, 4).join('/')}`;
-            const sort = pathParts[4] || 'hot';
-            
-            this.currentSubreddit = multiRedditPath;
-            this.currentSort = sort;
-            this.subredditInput.value = multiRedditPath;
-            this.updateActiveTab();
-            
-            // Load posts if we have a multi-reddit
-            if (this.currentSubreddit) {
-                this.loadPosts();
-            }
-        } else {
-            // No valid subreddit or multi-reddit in URL, reset to defaults
-            this.currentSubreddit = '';
-            this.currentSort = 'hot';
-            this.subredditInput.value = '';
-            this.updateActiveTab();
+        let subreddit = '', sort = 'hot';
+        
+        if (parts.length >= 2 && parts[0] === 'r') {
+            subreddit = parts[1];
+            sort = parts[2] || 'hot';
+        } else if (parts.length >= 4 && parts[0] === 'user' && parts[2] === 'm') {
+            subreddit = `/${parts.slice(0, 4).join('/')}`;
+            sort = parts[4] || 'hot';
         }
+        
+        this.currentSubreddit = subreddit;
+        this.currentSort = sort;
+        this.subredditInput.value = subreddit;
+        this.updateActiveTab();
+        
+        if (subreddit) this.loadPosts();
     }
 
     updateURL() {
@@ -214,112 +222,69 @@ class RedditFeedReader {
     }
 
     setTheme(theme) {
-        // Apply theme to both app element and html element for consistent background
         this.app.className = `${theme}-theme`;
         document.documentElement.className = theme === 'dark' ? 'dark-theme' : '';
         
         const themeIcon = this.themeToggle.querySelector('.theme-icon');
-        
-        if (theme === 'light') {
-            // Moon icon for switching to dark mode
-            themeIcon.innerHTML = this.THEME_ICONS.MOON;
-        } else {
-            // Sun icon for switching to light mode
-            themeIcon.innerHTML = this.THEME_ICONS.SUN;
-        }
+        themeIcon.innerHTML = theme === 'light' ? ICONS.MOON : ICONS.SUN;
         
         localStorage.setItem('theme', theme);
     }
 
     toggleTheme() {
-        const currentTheme = this.app.className.includes('light') ? 'light' : 'dark';
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        this.setTheme(newTheme);
+        this.setTheme(this.app.className.includes('light') ? 'dark' : 'light');
     }
 
     handleSubredditChange() {
         let input = this.subredditInput.value.trim();
         
-        // Check if the input looks like a multi-reddit
-        const isMultiRedditInput = input.includes('user/') && input.includes('/m/');
-        
-        // Normalize multi-reddit format - ensure it starts with '/'
-        if (isMultiRedditInput && !input.startsWith('/')) {
+        // Normalize multi-reddit format
+        if (input.includes('user/') && input.includes('/m/') && !input.startsWith('/')) {
             input = '/' + input;
         }
         
         if (input && input !== this.currentSubreddit) {
             const wasEmpty = !this.currentSubreddit;
             this.currentSubreddit = input;
-            
-            // Get storage key for this input (subreddit name or multi-reddit path)
-            const storageKey = this.getStorageKey(input);
-            
-            // Initialize hidden posts for this subreddit/multi-reddit if not already created
-            if (!this.hiddenPosts[storageKey]) {
-                this.hiddenPosts[storageKey] = new Set();
-            }
-            
-            this.hasError = false; // Reset error state
-            this.updateURL(); // Update URL
-            this.showSubredditConfirmation(input);
+            this.hasError = false;
+            this.updateURL();
+            this.showSubredditConfirmation();
             this.loadPosts();
             
-            // Start timer if it wasn't running (first input entry)
-            if (wasEmpty) {
-                this.startRefreshTimer();
-            } else {
-                this.resetRefreshTimer();
-            }
+            wasEmpty ? this.startRefreshTimer() : this.resetRefreshTimer();
         }
     }
 
-    showSubredditConfirmation(input) {
-        // Create shockwave effect
-        const inputRect = this.subredditInput.getBoundingClientRect();
-        const shockwave = document.createElement('div');
-        shockwave.className = 'shockwave';
-        shockwave.style.position = 'fixed';
-        shockwave.style.left = `${inputRect.left + inputRect.width / 2}px`;
-        shockwave.style.top = `${inputRect.top + inputRect.height / 2}px`;
-        shockwave.style.width = '4px';
-        shockwave.style.height = '4px';
-        shockwave.style.border = '2px solid var(--success)';
-        shockwave.style.borderRadius = '50%';
-        shockwave.style.pointerEvents = 'none';
-        shockwave.style.zIndex = '1000';
-        shockwave.style.transform = 'translate(-50%, -50%)';
+    showSubredditConfirmation() {
+        const rect = this.subredditInput.getBoundingClientRect();
+        const shockwave = DOM.create('div', 'shockwave');
+        Object.assign(shockwave.style, {
+            position: 'fixed',
+            left: `${rect.left + rect.width / 2}px`,
+            top: `${rect.top + rect.height / 2}px`,
+            width: '4px',
+            height: '4px',
+            border: '2px solid var(--success)',
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            zIndex: '1000',
+            transform: 'translate(-50%, -50%)'
+        });
         
         document.body.appendChild(shockwave);
         
-        // Animate the shockwave
         shockwave.animate([
-            { 
-                width: '4px', 
-                height: '4px', 
-                opacity: '1',
-                borderWidth: '2px'
-            },
-            { 
-                width: `${this.SHOCKWAVE_SIZE}px`, 
-                height: `${this.SHOCKWAVE_SIZE}px`, 
-                opacity: '0',
-                borderWidth: '1px'
-            }
-        ], {
-            duration: 100,
-            easing: 'ease-out'
-        }).onfinish = () => {
-            document.body.removeChild(shockwave);
-        };
+            { width: '4px', height: '4px', opacity: '1', borderWidth: '2px' },
+            { width: `${CONFIG.SHOCKWAVE_SIZE}px`, height: `${CONFIG.SHOCKWAVE_SIZE}px`, opacity: '0', borderWidth: '1px' }
+        ], { duration: 100, easing: 'ease-out' }).onfinish = () => shockwave.remove();
         
-        // Add input border effect
-        this.subredditInput.style.borderColor = 'var(--success)';
-        this.subredditInput.style.boxShadow = '0 0 0 3px rgba(40, 167, 69, 0.2)';
-        
+        // Flash input border
+        Object.assign(this.subredditInput.style, {
+            borderColor: 'var(--success)',
+            boxShadow: '0 0 0 3px rgba(40, 167, 69, 0.2)'
+        });
         setTimeout(() => {
-            this.subredditInput.style.borderColor = 'var(--border-color)';
-            this.subredditInput.style.boxShadow = 'none';
+            Object.assign(this.subredditInput.style, { borderColor: '', boxShadow: '' });
         }, 100);
     }
 
@@ -362,14 +327,13 @@ class RedditFeedReader {
                 this.currentTimer++;
                 this.updateTimerDisplay();
                 
-                if (this.currentTimer >= this.refreshTimer) {
+                if (this.currentTimer >= CONFIG.REFRESH_INTERVAL) {
                     if (this.currentSubreddit) {
-                        this.loadPosts(true, true); // timer refresh with animations and loading
+                        this.loadPosts(true, true);
                     }
                     this.resetRefreshTimer();
                 }
             } else {
-                // Update display even in error state to show grayed out circle
                 this.updateTimerDisplay();
             }
         }, 1000);
@@ -382,15 +346,12 @@ class RedditFeedReader {
 
     updateTimerDisplay() {
         if (this.hasError) {
-            // Show grayed out circle when in error state
-            this.timerProgress.style.strokeDashoffset = this.TIMER_CIRCUMFERENCE; // Empty circle
-            this.timerProgress.style.opacity = '0.3'; // Grayed out
+            this.timerProgress.style.strokeDashoffset = CONFIG.TIMER_CIRCUMFERENCE;
+            this.timerProgress.style.opacity = '0.3';
         } else {
-            // Normal countdown behavior
-            const progress = (this.currentTimer / this.refreshTimer) * this.TIMER_CIRCUMFERENCE;
-            const offset = this.TIMER_CIRCUMFERENCE - progress;
-            this.timerProgress.style.strokeDashoffset = offset;
-            this.timerProgress.style.opacity = '1'; // Full opacity
+            const progress = (this.currentTimer / CONFIG.REFRESH_INTERVAL) * CONFIG.TIMER_CIRCUMFERENCE;
+            this.timerProgress.style.strokeDashoffset = CONFIG.TIMER_CIRCUMFERENCE - progress;
+            this.timerProgress.style.opacity = '1';
         }
     }
 
@@ -465,8 +426,7 @@ class RedditFeedReader {
     isCacheStale(subreddit, sort) {
         const timestamp = this.getCacheTimestamp(subreddit, sort);
         if (!timestamp) return true;
-        const age = Date.now() - timestamp;
-        return age > this.REFRESH_INTERVAL * 1000; // Stale if older than refresh interval
+        return (Date.now() - timestamp) > CONFIG.REFRESH_INTERVAL * 1000;
     }
     
     setCachedPosts(subreddit, sort, posts) {
@@ -490,17 +450,13 @@ class RedditFeedReader {
         const subreddit = this.currentSubreddit;
         const currentSort = this.currentSort;
         
-        // Get tabs that need prefetching (not current tab, not cached or stale)
-        const tabsToPrefetch = this.SORT_TABS.filter(sort => {
+        const tabsToPrefetch = CONFIG.SORT_TABS.filter(sort => {
             if (sort === currentSort) return false;
-            // Only prefetch if no cache or cache is stale
             if (this.getCachedPosts(subreddit, sort) && !this.isCacheStale(subreddit, sort)) return false;
             return true;
         });
         
-        // Prefetch each tab with a small delay to not overwhelm the network
         for (const sort of tabsToPrefetch) {
-            // Check if subreddit changed while prefetching
             if (this.currentSubreddit !== subreddit) break;
             
             try {
@@ -513,18 +469,15 @@ class RedditFeedReader {
                         .map(child => child.data)
                         .filter(post => !post.stickied);
                     
-                    // Only cache if still on same subreddit
                     if (this.currentSubreddit === subreddit && posts.length > 0) {
                         this.setCachedPosts(subreddit, sort, posts);
                     }
                 }
             } catch (error) {
-                // Silently fail prefetch - it's just an optimization
                 console.debug(`Prefetch failed for ${sort}:`, error);
             }
             
-            // Small delay between prefetches to be nice to the API
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, CONFIG.PREFETCH_DELAY));
         }
     }
 
@@ -589,27 +542,17 @@ class RedditFeedReader {
             
             const wasVisibleBefore = visibleOldPosts.some(p => p.id === post.id);
             if (!wasVisibleBefore) {
-                // New post - animate in
                 postElement.classList.add('entering');
-                setTimeout(() => {
-                    postElement.classList.remove('entering');
-                }, this.ANIMATION_DURATION);
+                setTimeout(() => postElement.classList.remove('entering'), CONFIG.ANIMATION_DURATION);
             } else {
-                // Existing post - check if position changed
                 const oldIndex = visibleOldPosts.findIndex(p => p.id === post.id);
                 if (oldIndex !== newIndex) {
                     if (oldIndex > newIndex) {
-                        // Post moved up
                         postElement.classList.add('moving-up');
-                        setTimeout(() => {
-                            postElement.classList.remove('moving-up');
-                        }, this.ANIMATION_DURATION);
+                        setTimeout(() => postElement.classList.remove('moving-up'), CONFIG.ANIMATION_DURATION);
                     } else {
-                        // Post moved down
                         postElement.classList.add('moving-down');
-                        setTimeout(() => {
-                            postElement.classList.remove('moving-down');
-                        }, this.ANIMATION_DURATION);
+                        setTimeout(() => postElement.classList.remove('moving-down'), CONFIG.ANIMATION_DURATION);
                     }
                 }
             }
@@ -624,10 +567,8 @@ class RedditFeedReader {
                 if (postElement) {
                     postElement.classList.add('exiting');
                     setTimeout(() => {
-                        if (postElement.parentNode) {
-                            postElement.parentNode.removeChild(postElement);
-                        }
-                    }, this.ANIMATION_DURATION);
+                        postElement.parentNode?.removeChild(postElement);
+                    }, CONFIG.ANIMATION_DURATION);
                 }
             }
         });
@@ -637,7 +578,7 @@ class RedditFeedReader {
             container.parentNode.removeChild(container);
             tempContainer.id = 'posts-container';
             this.postsContainer = tempContainer;
-        }, this.ANIMATION_DURATION + 100); // Slightly longer than animation duration
+        }, CONFIG.ANIMATION_DURATION + 100);
     }
 
     findPostElement(postId) {
@@ -658,237 +599,93 @@ class RedditFeedReader {
     }
 
     createPostElement(post) {
-        const postDiv = document.createElement('div');
-        postDiv.className = 'post';
-        postDiv.setAttribute('data-post-id', post.id);
+        const postDiv = DOM.create('div', 'post', { 'data-post-id': post.id });
+        postDiv.classList.add(this.isPostHidden(post.id) ? 'hidden' : 'visible');
         
-        // Apply hidden class immediately to prevent flash
-        if (this.isPostHidden(post.id)) {
-            postDiv.classList.add('hidden');
-        } else {
-            // Add visible class for posts that should be shown
-            postDiv.classList.add('visible');
-        }
-        
-        // Create header row for the post (will hold hide button, votes, and subreddit)
-        const postHeaderRow = document.createElement('div');
-        postHeaderRow.className = 'post-header-row';
-        
-        // Create voting section to contain both hide button and votes for large screens
-        const votingSection = document.createElement('div');
-        votingSection.className = 'post-voting-section';
-        
-        // Create hide button - will be used in both layouts
-        const hideButton = document.createElement('button');
-        hideButton.className = 'hide-btn';
-        hideButton.textContent = 'Hide';
-        hideButton.onclick = () => this.hidePost(post.id);
-        
-        // Create a clone for the header row
-        const hideButtonMobile = hideButton.cloneNode(true);
-        hideButtonMobile.onclick = () => this.hidePost(post.id);
-        
-        // Create votes div - will be used in both layouts
-        const votesDiv = document.createElement('div');
-        votesDiv.className = 'post-votes';
-        
-        // Add an upvote icon
-        const upvoteIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        upvoteIcon.setAttribute("width", "12");
-        upvoteIcon.setAttribute("height", "12");
-        upvoteIcon.setAttribute("viewBox", "0 0 24 24");
-        upvoteIcon.setAttribute("class", "upvote-icon");
-        upvoteIcon.innerHTML = `<path d="M12 4l8 8h-6v8h-4v-8H4z" fill="currentColor"/>`;
-        
-        const votesText = document.createElement('span');
-        votesText.textContent = this.formatNumber(post.ups);
-        
-        votesDiv.appendChild(upvoteIcon);
-        votesDiv.appendChild(votesText);
-        
-        // Clone for mobile view
-        const votesDivMobile = votesDiv.cloneNode(true);
-        
-        // Create subreddit link
-        const subredditLink = document.createElement('a');
-        subredditLink.className = 'post-subreddit';
+        const permalinkUrl = `https://reddit.com${post.permalink}`;
         const subredditName = post.subreddit_name_prefixed || `r/${post.subreddit}`;
-        subredditLink.href = `https://reddit.com/${subredditName}`;
-        subredditLink.textContent = subredditName;
-        subredditLink.target = '_blank';
+        const timeAgo = this.formatTimeAgo(post.created_utc);
+        const voteCount = this.formatNumber(post.ups);
         
-        // Clone for the content area (large screens)
-        const subredditLinkDesktop = subredditLink.cloneNode(true);
+        // Determine post type
+        const isSelftext = post.selftext?.trim();
+        const isExternal = !post.is_self && post.domain && post.url_overridden_by_dest && !post.is_reddit_media_domain;
         
-        // Add elements to voting section for large screens
-        votingSection.appendChild(hideButton);
-        votingSection.appendChild(votesDiv);
+        // Create reusable element factories
+        const createHideButton = () => {
+            const btn = DOM.create('button', 'hide-btn', { text: 'Hide' });
+            btn.onclick = () => this.hidePost(post.id);
+            return btn;
+        };
         
-        // Add elements to header row for small screens
-        postHeaderRow.appendChild(hideButtonMobile);
-        postHeaderRow.appendChild(votesDivMobile);
-        postHeaderRow.appendChild(subredditLink);
+        const createVotesDiv = () => {
+            const div = DOM.create('div', 'post-votes');
+            div.appendChild(DOM.createSVG(12, 12, '0 0 24 24', 'upvote-icon', ICONS.UPVOTE));
+            div.appendChild(DOM.create('span', null, { text: voteCount }));
+            return div;
+        };
         
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'post-content';
+        const createSubredditLink = () => 
+            DOM.createLink('post-subreddit', `https://reddit.com/${subredditName}`, subredditName);
         
-        // Add a class to differentiate post types for styling
-        if (post.selftext && post.selftext.trim()) {
-            contentDiv.classList.add('selftext-post');
-        } else if (!post.is_self && post.domain && post.url_overridden_by_dest && !post.is_reddit_media_domain) {
-            contentDiv.classList.add('external-post');
-        }
+        const createTitleLink = (extraClass = '') => 
+            DOM.createLink(`post-title ${extraClass}`.trim(), permalinkUrl, post.title);
         
-        const titleLink = document.createElement('a');
-        titleLink.className = 'post-title';
-        titleLink.href = `https://reddit.com${post.permalink}`;
-        titleLink.target = '_blank';
-        titleLink.textContent = post.title;
-        
-        // Create metadata container for time and description
-        const metadataDiv = document.createElement('div');
-        metadataDiv.className = 'post-metadata';
-        
-        const timeSpan = document.createElement('span');
-        timeSpan.className = 'post-time';
-        timeSpan.textContent = this.formatTimeAgo(post.created_utc);
-        metadataDiv.appendChild(timeSpan);
-        
-        let hasDescription = false;
-        
-        if (post.selftext && post.selftext.trim()) {
-            // Add a separator between time and selftext
-            const separator = document.createElement('span');
-            separator.className = 'post-meta-separator';
-            separator.textContent = '•';
-            metadataDiv.appendChild(separator);
+        const createMetadata = (extraClass = '') => {
+            const div = DOM.create('div', `post-metadata ${extraClass}`.trim());
+            div.appendChild(DOM.create('span', 'post-time', { text: timeAgo }));
             
-            // Posts with selftext - both title and description link to Reddit
-            const descriptionLink = document.createElement('a');
-            descriptionLink.href = `https://reddit.com${post.permalink}`;
-            descriptionLink.target = '_blank';
-            descriptionLink.textContent = post.selftext;
-            descriptionLink.className = 'post-description-link selftext-link';
-            metadataDiv.appendChild(descriptionLink);
-            hasDescription = true;
-        } else if (!post.is_self && post.domain && post.url_overridden_by_dest && !post.is_reddit_media_domain) {
-            // Add a separator between time and domain
-            const separator = document.createElement('span');
-            separator.className = 'post-meta-separator';
-            separator.textContent = '•';
-            metadataDiv.appendChild(separator);
-            
-            // Posts linking to external articles - exclude Reddit-hosted media
-            const domainLink = document.createElement('a');
-            domainLink.href = post.url_overridden_by_dest;
-            domainLink.target = '_blank';
-            domainLink.textContent = post.domain;
-            domainLink.className = 'post-description-link external-link';
-            metadataDiv.appendChild(domainLink);
-            hasDescription = true;
-        }
-        // Posts that are neither selftext nor external links (including Reddit videos, images, etc.) will have no description
-        
-        // Insert the desktop subreddit link to content for large screens
-        contentDiv.insertBefore(subredditLinkDesktop, contentDiv.firstChild);
-        contentDiv.appendChild(titleLink);
-        contentDiv.appendChild(metadataDiv);
-        
-        // Create a content wrapper for small screens to control ordering
-        const mobileContentWrapper = document.createElement('div');
-        mobileContentWrapper.className = 'mobile-content-wrapper';
-        
-        // Append all elements to the post
-        postDiv.appendChild(votingSection);  // For large screens
-        postDiv.appendChild(contentDiv);     // For large screens
-        
-        // Create mobile content elements with proper event handling
-        const mobileTitleLink = document.createElement('a');
-        mobileTitleLink.className = 'post-title mobile-title';
-        mobileTitleLink.href = `https://reddit.com${post.permalink}`;
-        mobileTitleLink.target = '_blank';
-        mobileTitleLink.textContent = post.title;
-        
-        // Clone metadata with proper event handling
-        const mobileMetadataDiv = document.createElement('div');
-        mobileMetadataDiv.className = 'post-metadata mobile-metadata';
-        
-        const mobileTimeSpan = document.createElement('span');
-        mobileTimeSpan.className = 'post-time';
-        mobileTimeSpan.textContent = this.formatTimeAgo(post.created_utc);
-        mobileMetadataDiv.appendChild(mobileTimeSpan);
-        
-        // Add description link if exists
-        if (hasDescription) {
-            if (post.selftext && post.selftext.trim()) {
-                // Add a separator between time and selftext
-                const mobileSeparator = document.createElement('span');
-                mobileSeparator.className = 'post-meta-separator';
-                mobileSeparator.textContent = '•';
-                mobileMetadataDiv.appendChild(mobileSeparator);
-                
-                const mobileDescLink = document.createElement('a');
-                mobileDescLink.href = `https://reddit.com${post.permalink}`;
-                mobileDescLink.target = '_blank';
-                mobileDescLink.textContent = post.selftext;
-                mobileDescLink.className = 'post-description-link selftext-link';
-                mobileMetadataDiv.appendChild(mobileDescLink);
-            } else if (!post.is_self && post.domain && post.url_overridden_by_dest && !post.is_reddit_media_domain) {
-                // Add a separator between time and domain
-                const mobileSeparator = document.createElement('span');
-                mobileSeparator.className = 'post-meta-separator';
-                mobileSeparator.textContent = '•';
-                mobileMetadataDiv.appendChild(mobileSeparator);
-                
-                const mobileDomainLink = document.createElement('a');
-                mobileDomainLink.href = post.url_overridden_by_dest;
-                mobileDomainLink.target = '_blank';
-                mobileDomainLink.textContent = post.domain;
-                mobileDomainLink.className = 'post-description-link external-link';
-                mobileMetadataDiv.appendChild(mobileDomainLink);
+            if (isSelftext) {
+                div.appendChild(DOM.create('span', 'post-meta-separator', { text: '•' }));
+                div.appendChild(DOM.createLink('post-description-link selftext-link', permalinkUrl, post.selftext));
+            } else if (isExternal) {
+                div.appendChild(DOM.create('span', 'post-meta-separator', { text: '•' }));
+                div.appendChild(DOM.createLink('post-description-link external-link', post.url_overridden_by_dest, post.domain));
             }
-        }
+            return div;
+        };
         
-        // For small screens, first the header row then the content
-        mobileContentWrapper.appendChild(postHeaderRow);  // Header row first on mobile
-        mobileContentWrapper.appendChild(mobileTitleLink); // Then the title
-        mobileContentWrapper.appendChild(mobileMetadataDiv); // Then metadata
+        // Desktop layout: voting section + content
+        const votingSection = DOM.create('div', 'post-voting-section');
+        votingSection.appendChild(createHideButton());
+        votingSection.appendChild(createVotesDiv());
         
-        postDiv.appendChild(mobileContentWrapper);  // Add mobile wrapper to post
+        const contentDiv = DOM.create('div', 'post-content');
+        if (isSelftext) contentDiv.classList.add('selftext-post');
+        else if (isExternal) contentDiv.classList.add('external-post');
+        
+        contentDiv.appendChild(createSubredditLink());
+        contentDiv.appendChild(createTitleLink());
+        contentDiv.appendChild(createMetadata());
+        
+        // Mobile layout: header row + title + metadata
+        const headerRow = DOM.create('div', 'post-header-row');
+        headerRow.appendChild(createHideButton());
+        headerRow.appendChild(createVotesDiv());
+        headerRow.appendChild(createSubredditLink());
+        
+        const mobileWrapper = DOM.create('div', 'mobile-content-wrapper');
+        mobileWrapper.appendChild(headerRow);
+        mobileWrapper.appendChild(createTitleLink('mobile-title'));
+        mobileWrapper.appendChild(createMetadata('mobile-metadata'));
+        
+        postDiv.appendChild(votingSection);
+        postDiv.appendChild(contentDiv);
+        postDiv.appendChild(mobileWrapper);
         
         return postDiv;
     }
 
     hidePost(postId) {
-        // If we have a current subreddit/multi-reddit, add the post to its hidden list for current tab
         if (this.currentSubreddit) {
-            const storageKey = this.getStorageKey(this.currentSubreddit);
-            
-            // Initialize nested structure if not exists
-            if (!this.hiddenPosts[storageKey]) {
-                this.hiddenPosts[storageKey] = {};
-            }
-            if (!this.hiddenPosts[storageKey][this.currentSort]) {
-                this.hiddenPosts[storageKey][this.currentSort] = new Set();
-            }
-            
-            this.hiddenPosts[storageKey][this.currentSort].add(postId);
-            
-            // Save to localStorage after hiding a post
+            this.ensureHiddenPostsStructure(this.currentSubreddit, this.currentSort).add(postId);
             this.saveHiddenPostsToStorage();
         }
         
-        // Find and hide all elements with this post ID (in case it appears multiple times)
-        const postElements = document.querySelectorAll(`[data-post-id="${postId}"]`);
-        postElements.forEach(postElement => {
-            postElement.classList.remove('visible');
-            postElement.classList.add('hiding');
-            // After animation completes, remove from DOM
-            setTimeout(() => {
-                if (postElement.parentNode) {
-                    postElement.parentNode.removeChild(postElement);
-                }
-            }, 220); // 200ms animation + 20ms buffer
+        document.querySelectorAll(`[data-post-id="${postId}"]`).forEach(el => {
+            el.classList.remove('visible');
+            el.classList.add('hiding');
+            setTimeout(() => el.parentNode?.removeChild(el), CONFIG.HIDE_ANIMATION_DURATION);
         });
     }
 
@@ -928,70 +725,51 @@ class RedditFeedReader {
     hideLoading() {
         this.loadingElement.classList.add('hidden');
     }
+    
+    getErrorContent(errorType) {
+        const isMulti = this.isMultiReddit(this.currentSubreddit);
+        const sub = this.currentSubreddit;
+        const sort = this.currentSort;
+        const verifyUrl = isMulti 
+            ? `https://www.reddit.com${sub}` 
+            : `https://www.reddit.com/r/${sub}`;
+        const verifyText = isMulti ? `reddit.com${sub}` : `reddit.com/r/${sub}`;
+        
+        if (errorType === 'NO_POSTS') {
+            const type = isMulti ? 'multi-reddit' : 'subreddit';
+            return {
+                title: 'No Posts Found',
+                message: `The ${type} "${sub}" exists but has no posts in the "${sort}" category.`,
+                suggestions: ['Try switching to a different tab (Hot, New, etc.) or check back later.']
+            };
+        }
+        
+        const type = isMulti ? 'multi-reddit' : 'subreddit';
+        return {
+            title: 'Unable to Load Posts',
+            message: `Could not load posts from ${type} "${sub}".`,
+            suggestions: [
+                `Please double-check the ${type} ${isMulti ? 'path' : 'name'} and try again.`,
+                `You can verify it exists by visiting: <a href="${verifyUrl}" target="_blank" rel="noopener">${verifyText}</a>`,
+                'This could also be due to network issues or Reddit being temporarily unavailable. Check the <a href="https://www.redditstatus.com" target="_blank" rel="noopener">Reddit Status Page</a> if the problem persists.'
+            ]
+        };
+    }
 
     showError(errorType = 'GENERIC') {
         this.hideInitialMessage();
         
-        const errorMessage = document.createElement('div');
-        errorMessage.id = 'error-message';
-        errorMessage.className = 'error-message';
+        const { title, message, suggestions } = this.getErrorContent(errorType);
+        const suggestionHtml = suggestions
+            .map(s => `<p class="error-suggestion">${s}</p>`)
+            .join('');
         
-        let title, message, suggestion;
-        
-        if (errorType === 'NO_POSTS') {
-            title = 'No Posts Found';
-            
-            if (this.isMultiReddit(this.currentSubreddit)) {
-                message = `The multi-reddit "${this.currentSubreddit}" exists but has no posts in the "${this.currentSort}" category.`;
-            } else {
-                message = `The subreddit "${this.currentSubreddit}" exists but has no posts in the "${this.currentSort}" category.`;
-            }
-            
-            suggestion = `
-                <p class="error-suggestion">Try switching to a different tab (Hot, New, etc.) or check back later.</p>
-            `;
-        } else {
-            // Generic error for all other cases (FETCH_ERROR, network issues, etc.)
-            title = 'Unable to Load Posts';
-            
-            if (this.isMultiReddit(this.currentSubreddit)) {
-                message = `Could not load posts from multi-reddit "${this.currentSubreddit}".`;
-                suggestion = `
-                    <p class="error-suggestion">Please double-check the multi-reddit path and try again.</p>
-                    <p class="error-suggestion">
-                        You can verify it exists by visiting: 
-                        <a href="https://www.reddit.com${this.currentSubreddit}" target="_blank" rel="noopener">
-                            reddit.com${this.currentSubreddit}
-                        </a>
-                    </p>
-                    <p class="error-suggestion">
-                        This could also be due to network issues or Reddit being temporarily unavailable.
-                        Check the <a href="https://www.redditstatus.com" target="_blank" rel="noopener">Reddit Status Page</a> if the problem persists.
-                    </p>
-                `;
-            } else {
-                message = `Could not load posts from subreddit "${this.currentSubreddit}".`;
-                suggestion = `
-                    <p class="error-suggestion">Please double-check the subreddit name and try again.</p>
-                    <p class="error-suggestion">
-                        You can verify it exists by visiting: 
-                        <a href="https://www.reddit.com/r/${this.currentSubreddit}" target="_blank" rel="noopener">
-                            reddit.com/r/${this.currentSubreddit}
-                        </a>
-                    </p>
-                    <p class="error-suggestion">
-                        This could also be due to network issues or Reddit being temporarily unavailable.
-                        Check the <a href="https://www.redditstatus.com" target="_blank" rel="noopener">Reddit Status Page</a> if the problem persists.
-                    </p>
-                `; 
-            }
-        }
-        
+        const errorMessage = DOM.create('div', 'error-message', { id: 'error-message' });
         errorMessage.innerHTML = `
             <div class="error-message-content">
                 <h2>${title}</h2>
                 <p>${message}</p>
-                ${suggestion}
+                ${suggestionHtml}
                 <button class="retry-button" onclick="window.redditFeedReader.retryLoading()">Try Again</button>
             </div>
         `;
@@ -1071,161 +849,117 @@ class RedditFeedReader {
     getStorageKey(input) {
         return input;
     }
+    
+    // Ensure hidden posts structure exists for subreddit/sort
+    ensureHiddenPostsStructure(subreddit, sort) {
+        const key = this.getStorageKey(subreddit);
+        this.hiddenPosts[key] ??= {};
+        this.hiddenPosts[key][sort] ??= new Set();
+        return this.hiddenPosts[key][sort];
+    }
 
-    // Load hidden posts from localStorage
-    // Structure: { subreddit: { sort: [postIds] } }
     loadHiddenPostsFromStorage() {
         try {
-            const storedHiddenPosts = localStorage.getItem('hiddenPosts');
-            if (storedHiddenPosts) {
-                const hiddenPostsObj = JSON.parse(storedHiddenPosts);
-                
-                // Convert to new nested structure with Sets
-                for (const subreddit in hiddenPostsObj) {
-                    const subredditData = hiddenPostsObj[subreddit];
-                    
-                    // Check if this is old format (array) or new format (object with sorts)
-                    if (Array.isArray(subredditData)) {
-                        // Old format: migrate to new format under 'hot' tab
-                        this.hiddenPosts[subreddit] = {
-                            hot: new Set(subredditData)
-                        };
-                    } else {
-                        // New format: convert arrays to Sets
-                        this.hiddenPosts[subreddit] = {};
-                        for (const sort in subredditData) {
-                            this.hiddenPosts[subreddit][sort] = new Set(subredditData[sort]);
-                        }
+            const stored = localStorage.getItem('hiddenPosts');
+            if (!stored) return;
+            
+            const data = JSON.parse(stored);
+            for (const subreddit in data) {
+                const subredditData = data[subreddit];
+                // Handle migration from old array format
+                if (Array.isArray(subredditData)) {
+                    this.hiddenPosts[subreddit] = { hot: new Set(subredditData) };
+                } else {
+                    this.hiddenPosts[subreddit] = {};
+                    for (const sort in subredditData) {
+                        this.hiddenPosts[subreddit][sort] = new Set(subredditData[sort]);
                     }
                 }
             }
         } catch (error) {
-            console.error('Error loading hidden posts from storage:', error);
-            this.hiddenPosts = {};
-        }
-        
-        if (!this.hiddenPosts || typeof this.hiddenPosts !== 'object') {
+            console.error('Error loading hidden posts:', error);
             this.hiddenPosts = {};
         }
     }
     
-    // Save hidden posts to localStorage
     saveHiddenPostsToStorage() {
         try {
-            const hiddenPostsObj = {};
+            const data = {};
             for (const subreddit in this.hiddenPosts) {
-                hiddenPostsObj[subreddit] = {};
+                data[subreddit] = {};
                 for (const sort in this.hiddenPosts[subreddit]) {
-                    hiddenPostsObj[subreddit][sort] = Array.from(this.hiddenPosts[subreddit][sort]);
+                    data[subreddit][sort] = [...this.hiddenPosts[subreddit][sort]];
                 }
             }
-            
-            localStorage.setItem('hiddenPosts', JSON.stringify(hiddenPostsObj));
+            localStorage.setItem('hiddenPosts', JSON.stringify(data));
         } catch (error) {
-            console.error('Error saving hidden posts to storage:', error);
+            console.error('Error saving hidden posts:', error);
         }
     }
     
-    // Get hidden posts for current subreddit AND current sort tab
     getHiddenPostsForCurrentSubreddit() {
         if (!this.currentSubreddit) return new Set();
-        
-        const storageKey = this.getStorageKey(this.currentSubreddit);
-        
-        // Initialize nested structure if not exists
-        if (!this.hiddenPosts[storageKey]) {
-            this.hiddenPosts[storageKey] = {};
-        }
-        if (!this.hiddenPosts[storageKey][this.currentSort]) {
-            this.hiddenPosts[storageKey][this.currentSort] = new Set();
-        }
-        
-        return this.hiddenPosts[storageKey][this.currentSort];
+        return this.ensureHiddenPostsStructure(this.currentSubreddit, this.currentSort);
     }
     
-    // Check if post is hidden for current subreddit AND current sort tab only
     isPostHidden(postId) {
         if (!this.currentSubreddit) return false;
-        
-        const storageKey = this.getStorageKey(this.currentSubreddit);
-        
-        if (!this.hiddenPosts[storageKey]) return false;
-        if (!this.hiddenPosts[storageKey][this.currentSort]) return false;
-        
-        return this.hiddenPosts[storageKey][this.currentSort].has(postId);
+        const key = this.getStorageKey(this.currentSubreddit);
+        return this.hiddenPosts[key]?.[this.currentSort]?.has(postId) ?? false;
     }
     
-    // Get all hidden post IDs across all tabs for a subreddit
-    getAllHiddenPostIdsForSubreddit(subreddit = null) {
-        const targetSubreddit = subreddit || this.currentSubreddit;
-        if (!targetSubreddit) return new Set();
-        
-        const storageKey = this.getStorageKey(targetSubreddit);
-        if (!this.hiddenPosts[storageKey]) return new Set();
-        
-        const allHiddenIds = new Set();
-        for (const sort in this.hiddenPosts[storageKey]) {
-            for (const postId of this.hiddenPosts[storageKey][sort]) {
-                allHiddenIds.add(postId);
+    getAllHiddenPostIdsForSubreddit(subreddit = this.currentSubreddit) {
+        if (!subreddit) return new Set();
+        const key = this.getStorageKey(subreddit);
+        const allIds = new Set();
+        if (this.hiddenPosts[key]) {
+            for (const sortSet of Object.values(this.hiddenPosts[key])) {
+                for (const id of sortSet) allIds.add(id);
             }
         }
-        return allHiddenIds;
+        return allIds;
     }
     
-    // Sync hidden posts from other tabs to current tab based on API response
     syncHiddenPostsFromOtherTabs(newPosts) {
         if (!this.currentSubreddit) return;
         
-        const storageKey = this.getStorageKey(this.currentSubreddit);
-        const currentPostIds = new Set(newPosts.map(post => post.id));
+        const key = this.getStorageKey(this.currentSubreddit);
+        const currentPostIds = new Set(newPosts.map(p => p.id));
+        const currentTabHidden = this.getHiddenPostsForCurrentSubreddit();
         
-        // Get all hidden posts from OTHER tabs (not current tab)
+        // Collect hidden IDs from other tabs
         const hiddenFromOtherTabs = new Set();
-        if (this.hiddenPosts[storageKey]) {
-            for (const sort in this.hiddenPosts[storageKey]) {
+        if (this.hiddenPosts[key]) {
+            for (const [sort, ids] of Object.entries(this.hiddenPosts[key])) {
                 if (sort !== this.currentSort) {
-                    for (const postId of this.hiddenPosts[storageKey][sort]) {
-                        hiddenFromOtherTabs.add(postId);
-                    }
+                    for (const id of ids) hiddenFromOtherTabs.add(id);
                 }
             }
         }
         
-        // For any post hidden in other tabs that appears in current API response,
-        // add it to current tab's hidden list
-        let addedAny = false;
-        const currentTabHidden = this.getHiddenPostsForCurrentSubreddit();
-        
-        for (const postId of hiddenFromOtherTabs) {
-            if (currentPostIds.has(postId) && !currentTabHidden.has(postId)) {
-                currentTabHidden.add(postId);
-                addedAny = true;
+        // Sync posts that appear in current response
+        let changed = false;
+        for (const id of hiddenFromOtherTabs) {
+            if (currentPostIds.has(id) && !currentTabHidden.has(id)) {
+                currentTabHidden.add(id);
+                changed = true;
             }
         }
         
-        if (addedAny) {
-            this.saveHiddenPostsToStorage();
-        }
+        if (changed) this.saveHiddenPostsToStorage();
     }
     
-    // Get count of hidden posts for current subreddit and tab
-    getHiddenPostsCount(subreddit = null) {
-        const targetSubreddit = subreddit || this.currentSubreddit;
-        if (!targetSubreddit) return 0;
-        
-        const storageKey = this.getStorageKey(targetSubreddit);
-        if (!this.hiddenPosts[storageKey]) return 0;
-        if (!this.hiddenPosts[storageKey][this.currentSort]) return 0;
-        
-        return this.hiddenPosts[storageKey][this.currentSort].size;
+    getHiddenPostsCount(subreddit = this.currentSubreddit) {
+        if (!subreddit) return 0;
+        const key = this.getStorageKey(subreddit);
+        return this.hiddenPosts[key]?.[this.currentSort]?.size ?? 0;
     }
     
-    // Get total count of hidden posts across all subreddits and tabs
     getTotalHiddenPostsCount() {
         let total = 0;
-        for (const subreddit in this.hiddenPosts) {
-            for (const sort in this.hiddenPosts[subreddit]) {
-                total += this.hiddenPosts[subreddit][sort].size;
+        for (const subreddit of Object.values(this.hiddenPosts)) {
+            for (const sortSet of Object.values(subreddit)) {
+                total += sortSet.size;
             }
         }
         return total;
@@ -1233,44 +967,22 @@ class RedditFeedReader {
     
     // Purge all hidden posts from memory and localStorage
     purgeHiddenPosts() {
-        // Clear the hidden posts from memory
         this.hiddenPosts = {};
-        
-        // Save the empty hidden posts to localStorage
         this.saveHiddenPostsToStorage();
-        
-        // Note: We intentionally do NOT clear favorites here
-        
-        // Show confirmation message
-        this.showHiddenPostsPurgeConfirmation();
-        
-        // Refresh posts to show previously hidden ones
-        if (this.currentSubreddit) {
-            this.loadPosts();
-        }
+        this.showNotification('All hidden posts have been restored');
+        if (this.currentSubreddit) this.loadPosts();
     }
     
-    // Show a confirmation message when hidden posts are purged
-    showHiddenPostsPurgeConfirmation() {
-        const notification = document.createElement('div');
-        notification.className = 'notification success-notification';
-        notification.textContent = 'All hidden posts have been restored';
-        
-        // Add to body
+    showNotification(message) {
+        const notification = DOM.create('div', 'notification success-notification', { text: message });
         document.body.appendChild(notification);
         
-        // Auto-hide after 3 seconds
         setTimeout(() => {
             notification.classList.add('fading-out');
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 500);
+            setTimeout(() => notification.remove(), 500);
         }, 3000);
     }
 
-    // Initialize favorites
     initializeFavorites() {
         this.favorites = [];
         this.loadFavoritesFromStorage();
