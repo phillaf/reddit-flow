@@ -16,6 +16,12 @@ class RedditFeedReader {
         this.currentSort = 'hot';
         this.posts = [];
         
+        // Available sort tabs for prefetching
+        this.SORT_TABS = ['hot', 'new', 'rising', 'controversial', 'top'];
+        
+        // Cache for prefetched posts: { subreddit: { sort: posts[] } }
+        this.prefetchCache = {};
+        
         // Initialize hiddenPosts as an object with subreddit keys and Set values
         this.hiddenPosts = {};
         this.loadHiddenPostsFromStorage();
@@ -323,7 +329,19 @@ class RedditFeedReader {
             this.updateActiveTab();
             this.updateURL(); // Update URL
             if (this.currentSubreddit) {
-                this.loadPosts();
+                // Check if we have cached data for this tab
+                const cachedPosts = this.getCachedPosts(this.currentSubreddit, sort);
+                if (cachedPosts) {
+                    // Display cached data instantly
+                    this.updatePosts(cachedPosts, false);
+                    // Only refresh if cache is stale (older than refresh interval)
+                    if (this.isCacheStale(this.currentSubreddit, sort)) {
+                        this.loadPosts(false, false);
+                    }
+                } else {
+                    // No cache, load normally with loading indicator
+                    this.loadPosts(false, true);
+                }
                 this.resetRefreshTimer();
             }
         }
@@ -346,7 +364,7 @@ class RedditFeedReader {
                 
                 if (this.currentTimer >= this.refreshTimer) {
                     if (this.currentSubreddit) {
-                        this.loadPosts();
+                        this.loadPosts(true, true); // timer refresh with animations and loading
                     }
                     this.resetRefreshTimer();
                 }
@@ -376,11 +394,13 @@ class RedditFeedReader {
         }
     }
 
-    async loadPosts() {
+    async loadPosts(isTimerRefresh = false, showLoadingIndicator = true) {
         if (!this.currentSubreddit) return;
 
         this.isLoading = true;
-        this.showLoading();
+        if (showLoadingIndicator) {
+            this.showLoading();
+        }
         this.hideError();
         this.hideInitialMessage();
 
@@ -401,13 +421,19 @@ class RedditFeedReader {
                 throw new Error('NO_POSTS');
             }
             
-            this.updatePosts(newPosts);
+            // Cache the posts for this subreddit/sort
+            this.setCachedPosts(this.currentSubreddit, this.currentSort, newPosts);
+            
+            this.updatePosts(newPosts, isTimerRefresh);
             this.hideLoading();
             this.isLoading = false;
             this.hasError = false;
             
             // Update favorite button state for successful subreddit load
             this.updateFavoriteButtonState();
+            
+            // Prefetch other tabs in background after successful load
+            this.prefetchOtherTabs();
             
         } catch (error) {
             console.error('Failed to load posts:', error);
@@ -422,8 +448,87 @@ class RedditFeedReader {
             }
         }
     }
+    
+    // Cache management - cache stores { posts, timestamp }
+    getCachedPosts(subreddit, sort) {
+        if (!this.prefetchCache[subreddit]) return null;
+        const cached = this.prefetchCache[subreddit][sort];
+        return cached ? cached.posts : null;
+    }
+    
+    getCacheTimestamp(subreddit, sort) {
+        if (!this.prefetchCache[subreddit]) return null;
+        const cached = this.prefetchCache[subreddit][sort];
+        return cached ? cached.timestamp : null;
+    }
+    
+    isCacheStale(subreddit, sort) {
+        const timestamp = this.getCacheTimestamp(subreddit, sort);
+        if (!timestamp) return true;
+        const age = Date.now() - timestamp;
+        return age > this.REFRESH_INTERVAL * 1000; // Stale if older than refresh interval
+    }
+    
+    setCachedPosts(subreddit, sort, posts) {
+        if (!this.prefetchCache[subreddit]) {
+            this.prefetchCache[subreddit] = {};
+        }
+        this.prefetchCache[subreddit][sort] = {
+            posts: posts,
+            timestamp: Date.now()
+        };
+    }
+    
+    clearCacheForSubreddit(subreddit) {
+        delete this.prefetchCache[subreddit];
+    }
+    
+    // Prefetch other tabs in background
+    async prefetchOtherTabs() {
+        if (!this.currentSubreddit) return;
+        
+        const subreddit = this.currentSubreddit;
+        const currentSort = this.currentSort;
+        
+        // Get tabs that need prefetching (not current tab, not cached or stale)
+        const tabsToPrefetch = this.SORT_TABS.filter(sort => {
+            if (sort === currentSort) return false;
+            // Only prefetch if no cache or cache is stale
+            if (this.getCachedPosts(subreddit, sort) && !this.isCacheStale(subreddit, sort)) return false;
+            return true;
+        });
+        
+        // Prefetch each tab with a small delay to not overwhelm the network
+        for (const sort of tabsToPrefetch) {
+            // Check if subreddit changed while prefetching
+            if (this.currentSubreddit !== subreddit) break;
+            
+            try {
+                const url = this.getRedditApiUrl(subreddit, sort);
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const posts = data.data.children
+                        .map(child => child.data)
+                        .filter(post => !post.stickied);
+                    
+                    // Only cache if still on same subreddit
+                    if (this.currentSubreddit === subreddit && posts.length > 0) {
+                        this.setCachedPosts(subreddit, sort, posts);
+                    }
+                }
+            } catch (error) {
+                // Silently fail prefetch - it's just an optimization
+                console.debug(`Prefetch failed for ${sort}:`, error);
+            }
+            
+            // Small delay between prefetches to be nice to the API
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
 
-    updatePosts(newPosts) {
+    updatePosts(newPosts, isTimerRefresh = false) {
         const oldPosts = [...this.posts];
         this.posts = newPosts;
         
@@ -453,12 +558,11 @@ class RedditFeedReader {
             }
         }
 
-        if (oldPosts.length === 0) {
-            // First load
-            this.renderPosts();
-        } else {
-            // Update with animations
+        // Only animate on timer refresh, otherwise render instantly for snappy navigation
+        if (isTimerRefresh && oldPosts.length > 0) {
             this.animatePostUpdates(oldPosts, newPosts);
+        } else {
+            this.renderPosts();
         }
     }
 

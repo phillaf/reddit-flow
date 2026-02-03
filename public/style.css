@@ -172,7 +172,7 @@ body {
     width: 350px;
     min-width: 0;
     max-width: 100%;
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .subreddit-input:focus {
@@ -233,7 +233,7 @@ body {
     border-radius: 8px;
     padding: 0.5rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, transform 0.3s ease, color 0.3s ease;
     background-color: var(--bg-primary);
     color: var(--text-secondary);
     display: flex;
@@ -252,7 +252,7 @@ body {
 }
 
 .theme-icon {
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
 /* Initial message styles */
@@ -330,7 +330,7 @@ body {
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .retry-button:hover {
@@ -361,7 +361,7 @@ body {
     letter-spacing: 0.5px;
     color: var(--text-secondary);
     border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
+    transition: color 0.3s ease, background-color 0.3s ease, border-bottom-color 0.3s ease;
 }
 
 .tab-button:hover {
@@ -548,16 +548,10 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
-    transition: opacity 0.1s ease, box-shadow 0.2s ease, transform 0.2s ease;
-    opacity: 0; /* Start hidden to prevent flash */
-    transform: translateY(0);
+    transition: box-shadow 0.2s ease, transform 0.2s ease; /* Only animate hover effects */
     position: relative;
     width: 100%;
     box-sizing: border-box;
-}
-
-.post.visible {
-    opacity: 1; /* Make visible when ready */
 }
 
 .post.hidden {
@@ -677,7 +671,7 @@ body {
     cursor: pointer;
     font-size: 0.7rem;
     color: var(--text-secondary);
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease;
     flex-shrink: 0;
 }
 
@@ -1327,7 +1321,7 @@ body {
 /* Enhanced dark mode post styling */
 .dark-theme .post {
     border: 1px solid var(--border-color);
-    transition: all 0.2s ease, border-color 0.3s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.3s ease;
 }
 
 .dark-theme .post:hover {
