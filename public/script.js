@@ -14,6 +14,7 @@ const ICONS = {
     MOON: '<path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path>',
     SUN: '<circle cx="12" cy="12" r="4" fill="currentColor"></circle><path d="m12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>',
     UPVOTE: '<path d="M12 4l8 8h-6v8h-4v-8H4z" fill="currentColor"/>',
+    COG: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>',
 };
 
 // DOM helper utilities
@@ -54,6 +55,7 @@ class RedditFeedReader {
         this.prefetchCache = {};
         this.hiddenPosts = {};
         this.favorites = [];
+        this.blockedSources = [];
         
         // Timer state
         this.timerInterval = null;
@@ -64,6 +66,7 @@ class RedditFeedReader {
         this.hasError = false;
         
         this.loadHiddenPostsFromStorage();
+        this.loadBlockedSources();
         
         this.initializeElements();
         this.bindEvents();
@@ -88,7 +91,9 @@ class RedditFeedReader {
         this.loadingElement = document.getElementById('loading');
         this.errorElement = document.getElementById('error');
         this.tabButtons = document.querySelectorAll('.tab-button');
-        this.themeToggle = document.getElementById('theme-toggle');
+        this.settingsToggle = document.getElementById('settings-toggle');
+        this.settingsDropdown = document.getElementById('settings-dropdown');
+        this.themeToggleItem = document.getElementById('theme-toggle-item');
         this.refreshTimerElement = document.getElementById('refresh-timer');
         this.timerProgress = document.querySelector('.timer-progress');
         this.favoriteButton = document.getElementById('favorite-button');
@@ -112,9 +117,32 @@ class RedditFeedReader {
             });
         });
 
-        // Theme toggle
-        this.themeToggle.addEventListener('click', () => {
-            this.toggleTheme();
+        // Settings toggle
+        this.settingsToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleSettingsDropdown();
+        });
+
+        // Theme toggle switch inside settings
+        document.getElementById('theme-switch').addEventListener('change', (e) => {
+            this.setTheme(e.target.checked ? 'light' : 'dark');
+        });
+
+        // Blocked sources item inside settings
+        document.getElementById('blocked-sources-item').addEventListener('click', () => {
+            this.toggleSettingsDropdown(false);
+            this.openBlockedSourcesModal();
+        });
+
+        // Blocked sources modal events
+        document.getElementById('modal-close').addEventListener('click', () => this.closeBlockedSourcesModal());
+        document.getElementById('modal-save').addEventListener('click', () => this.saveAndCloseBlockedSources());
+        document.getElementById('add-blocked-source').addEventListener('click', () => this.addBlockedSource());
+        document.getElementById('blocked-source-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addBlockedSource();
+        });
+        document.getElementById('blocked-sources-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'blocked-sources-modal') this.closeBlockedSourcesModal();
         });
 
         // Favorite button
@@ -133,11 +161,14 @@ class RedditFeedReader {
             });
         }
         
-        // Close dropdown when clicking outside
+        // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#favorites-dropdown') && 
                 !e.target.closest('#favorites-dropdown-toggle')) {
                 this.toggleFavoritesDropdown(false);
+            }
+            if (!e.target.closest('.settings-container')) {
+                this.toggleSettingsDropdown(false);
             }
         });
 
@@ -196,16 +227,11 @@ class RedditFeedReader {
     }
 
     initializeTheme() {
-        // Check for saved theme first, then system preference, then fallback to light
+        // Check for saved theme first, then fallback to dark
         let savedTheme = localStorage.getItem('theme');
         
         if (!savedTheme) {
-            // Use system preference if no saved theme
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                savedTheme = 'dark';
-            } else {
-                savedTheme = 'light';
-            }
+            savedTheme = 'dark';
         }
         
         this.setTheme(savedTheme);
@@ -225,8 +251,11 @@ class RedditFeedReader {
         this.app.className = `${theme}-theme`;
         document.documentElement.className = theme === 'dark' ? 'dark-theme' : '';
         
-        const themeIcon = this.themeToggle.querySelector('.theme-icon');
-        themeIcon.innerHTML = theme === 'light' ? ICONS.MOON : ICONS.SUN;
+        // Sync the toggle switch
+        const themeSwitch = document.getElementById('theme-switch');
+        if (themeSwitch) {
+            themeSwitch.checked = theme === 'light';
+        }
         
         localStorage.setItem('theme', theme);
     }
@@ -524,9 +553,9 @@ class RedditFeedReader {
         const oldPostsMap = new Map(oldPosts.map(post => [post.id, post]));
         const newPostsMap = new Map(newPosts.map(post => [post.id, post]));
         
-        // Filter out hidden posts from both old and new posts for animation comparison
-        const visibleOldPosts = oldPosts.filter(post => !this.isPostHidden(post.id));
-        const visibleNewPosts = newPosts.filter(post => !this.isPostHidden(post.id));
+        // Filter out hidden posts and blocked sources from both old and new posts for animation comparison
+        const visibleOldPosts = oldPosts.filter(post => !this.isPostHidden(post.id) && !this.isPostFromBlockedSource(post));
+        const visibleNewPosts = newPosts.filter(post => !this.isPostHidden(post.id) && !this.isPostFromBlockedSource(post));
         
         // Create a temporary container for animations
         const tempContainer = document.createElement('div');
@@ -591,6 +620,10 @@ class RedditFeedReader {
         this.posts.forEach(post => {
             // Skip hidden posts entirely - don't add them to DOM
             if (this.isPostHidden(post.id)) {
+                return;
+            }
+            // Skip posts from blocked sources
+            if (this.isPostFromBlockedSource(post)) {
                 return;
             }
             const postElement = this.createPostElement(post);
@@ -1176,6 +1209,111 @@ class RedditFeedReader {
     
     // Empty method to replace showFavoriteConfirmation
     // We're now using animation instead of notification
+
+    // Settings dropdown
+    toggleSettingsDropdown(forceState = null) {
+        const dropdown = document.getElementById('settings-dropdown');
+        if (!dropdown) return;
+        if (forceState !== null) {
+            dropdown.classList.toggle('hidden', !forceState);
+        } else {
+            dropdown.classList.toggle('hidden');
+        }
+    }
+
+    // === Blocked Sources ===
+    loadBlockedSources() {
+        try {
+            const stored = localStorage.getItem('blockedSources');
+            this.blockedSources = stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            console.error('Error loading blocked sources:', e);
+            this.blockedSources = [];
+        }
+    }
+
+    saveBlockedSources() {
+        try {
+            localStorage.setItem('blockedSources', JSON.stringify(this.blockedSources));
+        } catch (e) {
+            console.error('Error saving blocked sources:', e);
+        }
+    }
+
+    openBlockedSourcesModal() {
+        document.getElementById('blocked-sources-modal').classList.remove('hidden');
+        this.renderBlockedSourcesList();
+        document.getElementById('blocked-source-input').value = '';
+        document.getElementById('blocked-source-input').focus();
+    }
+
+    closeBlockedSourcesModal() {
+        document.getElementById('blocked-sources-modal').classList.add('hidden');
+    }
+
+    saveAndCloseBlockedSources() {
+        this.saveBlockedSources();
+        this.closeBlockedSourcesModal();
+        // Re-render posts to apply the filter
+        if (this.currentSubreddit && this.posts.length > 0) {
+            this.renderPosts();
+        }
+        this.showNotification('Blocked sources updated');
+    }
+
+    addBlockedSource() {
+        const input = document.getElementById('blocked-source-input');
+        let domain = input.value.trim().toLowerCase();
+        if (!domain) return;
+
+        // Clean up the domain (remove protocol, www, trailing slashes)
+        domain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+
+        if (this.blockedSources.includes(domain)) {
+            input.value = '';
+            return; // Already blocked
+        }
+
+        this.blockedSources.push(domain);
+        input.value = '';
+        this.renderBlockedSourcesList();
+    }
+
+    removeBlockedSource(domain) {
+        this.blockedSources = this.blockedSources.filter(d => d !== domain);
+        this.renderBlockedSourcesList();
+    }
+
+    renderBlockedSourcesList() {
+        const list = document.getElementById('blocked-sources-list');
+        const empty = document.getElementById('blocked-sources-empty');
+        list.innerHTML = '';
+
+        if (this.blockedSources.length === 0) {
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+
+        this.blockedSources.forEach(domain => {
+            const item = DOM.create('div', 'blocked-source-item');
+
+            const label = DOM.create('span', 'blocked-source-domain', { text: domain });
+            const removeBtn = DOM.create('button', 'blocked-source-remove', { html: '&times;', title: 'Remove' });
+            removeBtn.addEventListener('click', () => this.removeBlockedSource(domain));
+
+            item.appendChild(label);
+            item.appendChild(removeBtn);
+            list.appendChild(item);
+        });
+    }
+
+    isPostFromBlockedSource(post) {
+        if (this.blockedSources.length === 0) return false;
+        const domain = (post.domain || '').toLowerCase().replace(/^www\./, '');
+        return this.blockedSources.some(blocked => domain === blocked || domain.endsWith('.' + blocked));
+    }
 }
 
 // Initialize the application when the DOM is loaded
