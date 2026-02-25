@@ -40,7 +40,10 @@ const DOM = {
         return svg;
     },
     
-    createLink(className, href, text, target = '_blank') {
+    createLink(className, href, text, target) {
+        if (target === undefined) {
+            target = window.matchMedia('(max-width: 700px)').matches ? '_self' : '_blank';
+        }
         const link = DOM.create('a', className, { href, text, target });
         return link;
     },
