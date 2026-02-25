@@ -395,8 +395,13 @@ class RedditFeedReader {
         this.hideInitialMessage();
 
         try {
-            const url = this.getRedditApiUrl(this.currentSubreddit, this.currentSort);
-            const response = await fetch(url);
+            let response;
+            try {
+                const url = this.getRedditApiUrl(this.currentSubreddit, this.currentSort);
+                response = await fetch(url);
+            } catch (_) {
+                throw new Error('BLOCKED');
+            }
             
             if (!response.ok) {
                 throw new Error('FETCH_ERROR');
@@ -776,6 +781,18 @@ class RedditFeedReader {
                 suggestions: ['Try switching to a different tab (Hot, New, etc.) or check back later.']
             };
         }
+
+        if (errorType === 'BLOCKED') {
+            return {
+                title: 'Request Blocked by Browser',
+                message: 'Your browser\'s privacy shield is blocking requests to Reddit\'s API.',
+                suggestions: [
+                    '<strong>Brave Browser:</strong> Tap the shield icon (🛡) in the address bar and select <strong>"Shields DOWN for this site"</strong>, then try again.',
+                    '<strong>Other browsers:</strong> If you\'re using a privacy extension (uBlock Origin, Privacy Badger, etc.), try disabling it for this site.',
+                    'This site fetches posts directly from Reddit\'s public API and does not track you in any way.'
+                ]
+            };
+        }
         
         const type = isMulti ? 'multi-reddit' : 'subreddit';
         return {
@@ -870,10 +887,8 @@ class RedditFeedReader {
     // Format the URL for API calls based on input type (subreddit or multi-reddit)
     getRedditApiUrl(input, sort) {
         if (this.isMultiReddit(input)) {
-            // Multi-reddit format: /user/username/m/multiname
             return `https://www.reddit.com${input}/${sort}.json?limit=50`;
         } else {
-            // Regular subreddit
             return `https://www.reddit.com/r/${input}/${sort}.json?limit=50`;
         }
     }

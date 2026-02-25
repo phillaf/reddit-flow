@@ -46,6 +46,7 @@ body {
     --success: #28a745;
     --timer-bg: #f0f0f0;
     --timer-progress: #ffc107;
+    color-scheme: light;
 }
 
 .dark-theme {
@@ -62,6 +63,7 @@ body {
     --success: #28a745;
     --timer-bg: #404040;
     --timer-progress: #ffc107;
+    color-scheme: dark;
 }
 
 #app {
@@ -173,6 +175,8 @@ body {
     min-width: 0;
     max-width: 100%;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .subreddit-input:focus {
@@ -1426,10 +1430,9 @@ body {
     .tab-icon { width: 24px; height: 24px; }
 }
 
-/* Medium screens - show both icon and text in tabs */
+/* Medium screens - icon-only tabs */
 @media (min-width: 401px) and (max-width: 700px) {
     .tab-button { padding: 0.75rem 0.5rem; }
-    .tab-text { display: block; font-size: 0.7rem; margin-top: 0.25rem; }
 }
 
 /* =============================================================================
